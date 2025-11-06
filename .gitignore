@@ -36,3 +36,14 @@ pids
 # Release folder with large files
 release/
 src/i18n/Affinity x64.exe
+
+# APK files (large binary files - excluded from git)
+*.apk
+public/*.apk
+android/app/build/
+
+# Build artifacts
+android/build/
+android/app/build/
+android/.gradle/
+android/local.properties

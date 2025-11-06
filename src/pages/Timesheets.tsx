@@ -23,8 +23,11 @@ import {
   MapPin,
   User,
   Clock,
-  CurrencyEur
+  CurrencyEur,
+  FilePdf
 } from '@phosphor-icons/react';
+import html2canvas from 'html2canvas';
+import jsPDF from 'jspdf';
 
 // ============================================
 // TYPY
@@ -136,14 +139,153 @@ export function Timesheets() {
   const printRef = useRef<HTMLDivElement>(null);
   
   const handlePrint = () => {
-    if (printRef.current) {
-      const printContents = printRef.current.innerHTML;
-      const originalContents = document.body.innerHTML;
+    if (!printRef.current) return;
+    
+    // Metoda kompatybilna z mobile - używamy window.print() bez manipulacji DOM
+    // Tworzymy nowe okno lub używamy CSS media print
+    const printWindow = window.open('', '_blank');
+    if (!printWindow) {
+      // Fallback jeśli popup zablokowany - użyj iframe
+      const iframe = document.createElement('iframe');
+      iframe.style.position = 'fixed';
+      iframe.style.right = '0';
+      iframe.style.bottom = '0';
+      iframe.style.width = '0';
+      iframe.style.height = '0';
+      iframe.style.border = 'none';
+      document.body.appendChild(iframe);
       
-      document.body.innerHTML = printContents;
-      window.print();
-      document.body.innerHTML = originalContents;
-      window.location.reload(); // Refresh po wydruku
+      const iframeDoc = iframe.contentWindow?.document;
+      if (iframeDoc) {
+        iframeDoc.open();
+        iframeDoc.write(`
+          <!DOCTYPE html>
+          <html>
+          <head>
+            <meta charset="utf-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <title>Karta Pracy - MESSU BOUW</title>
+            <style>
+              @media print {
+                @page { margin: 1cm; }
+                body { margin: 0; padding: 20px; }
+              }
+              body { 
+                font-family: Arial, sans-serif; 
+                background: white; 
+                color: black;
+                max-width: 210mm;
+                margin: 0 auto;
+              }
+              * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+            </style>
+          </head>
+          <body>
+            ${printRef.current?.innerHTML || ''}
+          </body>
+          </html>
+        `);
+        iframeDoc.close();
+        
+        // Czekaj na załadowanie i drukuj
+        setTimeout(() => {
+          iframe.contentWindow?.print();
+          setTimeout(() => document.body.removeChild(iframe), 1000);
+        }, 500);
+      }
+    } else {
+      // Nowe okno działa - użyj go
+      printWindow.document.write(`
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <meta charset="utf-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+          <title>Karta Pracy - MESSU BOUW</title>
+          <style>
+            @media print {
+              @page { margin: 1cm; }
+              body { margin: 0; padding: 20px; }
+            }
+            body { 
+              font-family: Arial, sans-serif; 
+              background: white; 
+              color: black;
+              max-width: 210mm;
+              margin: 0 auto;
+            }
+            * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+          </style>
+        </head>
+        <body>
+          ${printRef.current?.innerHTML || ''}
+        </body>
+        </html>
+      `);
+      printWindow.document.close();
+      
+      // Czekaj na załadowanie obrazków i drukuj
+      setTimeout(() => {
+        printWindow.print();
+        setTimeout(() => printWindow.close(), 1000);
+      }, 500);
+    }
+  };
+
+  // Generuj PDF dla mobile (bardziej niezawodne niż window.print na telefonie)
+  const handleDownloadPDF = async () => {
+    if (!printRef.current || !currentSheet) return;
+    
+    try {
+      // Pokaż komunikat ładowania
+      const loadingToast = document.createElement('div');
+      loadingToast.textContent = '⏳ Generuję PDF...';
+      loadingToast.style.cssText = 'position:fixed;top:20px;left:50%;transform:translateX(-50%);background:#3b82f6;color:white;padding:12px 24px;border-radius:8px;z-index:9999;font-weight:600;';
+      document.body.appendChild(loadingToast);
+
+      // Przygotuj element do konwersji
+      const element = printRef.current;
+      
+      // Konwertuj HTML na canvas
+      const canvas = await html2canvas(element, {
+        scale: 2, // Wyższa jakość
+        useCORS: true,
+        logging: false,
+        backgroundColor: '#ffffff'
+      });
+      
+      // Oblicz wymiary dla PDF (A4: 210mm x 297mm)
+      const imgWidth = 210; // mm
+      const imgHeight = (canvas.height * imgWidth) / canvas.width;
+      
+      // Utwórz PDF
+      const pdf = new jsPDF({
+        orientation: imgHeight > imgWidth ? 'portrait' : 'landscape',
+        unit: 'mm',
+        format: 'a4'
+      });
+      
+      // Dodaj obraz canvas do PDF
+      const imgData = canvas.toDataURL('image/png');
+      pdf.addImage(imgData, 'PNG', 0, 0, imgWidth, imgHeight);
+      
+      // Zapisz PDF
+      const filename = `Karta_Pracy_${currentSheet.employeeName || 'MESSU_BOUW'}_${formatDatePL(currentSheet.weekStartDate)}.pdf`;
+      pdf.save(filename);
+      
+      // Usuń komunikat ładowania
+      document.body.removeChild(loadingToast);
+      
+      // Pokaż sukces
+      const successToast = document.createElement('div');
+      successToast.textContent = '✅ PDF pobrany!';
+      successToast.style.cssText = 'position:fixed;top:20px;left:50%;transform:translateX(-50%);background:#10b981;color:white;padding:12px 24px;border-radius:8px;z-index:9999;font-weight:600;';
+      document.body.appendChild(successToast);
+      setTimeout(() => document.body.removeChild(successToast), 3000);
+      
+    } catch (error) {
+      console.error('Błąd generowania PDF:', error);
+      alert('❌ Nie udało się wygenerować PDF. Spróbuj ponownie.');
     }
   };
 
@@ -588,10 +730,19 @@ export function Timesheets() {
           <div className="bg-white/95 backdrop-blur-md rounded-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
             <div className="p-6 border-b border-blue-200 flex items-center justify-between sticky top-0 bg-white/95 z-10">
               <h3 className="text-xl font-bold text-black">Podgląd Wydruku - MESSU BOUW</h3>
-              <div className="flex gap-3 items-center">
+              <div className="flex gap-3 items-center flex-wrap">
+                <button
+                  onClick={handleDownloadPDF}
+                  className="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-all shadow-lg"
+                  title="Pobierz jako PDF (rekomendowane dla telefonu)"
+                >
+                  <FilePdf size={18} className="inline mr-2" />
+                  Pobierz PDF
+                </button>
                 <button
                   onClick={handlePrint}
                   className="px-4 py-2 bg-sky-500 text-white rounded-lg hover:bg-sky-600 transition-all"
+                  title="Wydrukuj (działa lepiej na komputerze)"
                 >
                   <Printer size={18} className="inline mr-2" />
                   Drukuj

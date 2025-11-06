@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pobierz MESSU BOUW - Nowa Wersja z KVK</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        
+        .container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            max-width: 600px;
+            width: 100%;
+            padding: 40px;
+            text-align: center;
+        }
+        
+        .logo {
+            font-size: 48px;
+            margin-bottom: 10px;
+        }
+        
+        h1 {
+            color: #333;
+            margin-bottom: 10px;
+            font-size: 28px;
+        }
+        
+        .version {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 8px 20px;
+            border-radius: 20px;
+            display: inline-block;
+            margin-bottom: 20px;
+            font-weight: bold;
+        }
+        
+        .new-badge {
+            background: #10b981;
+            color: white;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 12px;
+            margin-left: 10px;
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
+        
+        .features {
+            background: #f8f9fa;
+            border-radius: 15px;
+            padding: 25px;
+            margin: 25px 0;
+            text-align: left;
+        }
+        
+        .features h2 {
+            color: #667eea;
+            font-size: 20px;
+            margin-bottom: 15px;
+            text-align: center;
+        }
+        
+        .feature-item {
+            display: flex;
+            align-items: flex-start;
+            margin-bottom: 12px;
+            padding: 10px;
+            background: white;
+            border-radius: 8px;
+        }
+        
+        .feature-icon {
+            font-size: 24px;
+            margin-right: 12px;
+            min-width: 30px;
+        }
+        
+        .feature-text {
+            flex: 1;
+        }
+        
+        .feature-title {
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 3px;
+        }
+        
+        .feature-desc {
+            color: #666;
+            font-size: 14px;
+        }
+        
+        .download-btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 18px 40px;
+            font-size: 18px;
+            font-weight: bold;
+            border-radius: 50px;
+            cursor: pointer;
+            text-decoration: none;
+            display: inline-block;
+            margin: 20px 0;
+            transition: transform 0.2s, box-shadow 0.2s;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+        }
+        
+        .download-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.6);
+        }
+        
+        .download-btn:active {
+            transform: translateY(0);
+        }
+        
+        .file-info {
+            color: #666;
+            font-size: 14px;
+            margin-top: 15px;
+        }
+        
+        .instructions {
+            background: #fff3cd;
+            border-left: 4px solid #ffc107;
+            padding: 15px;
+            margin-top: 25px;
+            text-align: left;
+            border-radius: 8px;
+        }
+        
+        .instructions h3 {
+            color: #856404;
+            font-size: 16px;
+            margin-bottom: 10px;
+        }
+        
+        .instructions ol {
+            margin-left: 20px;
+            color: #856404;
+        }
+        
+        .instructions li {
+            margin-bottom: 8px;
+        }
+        
+        .price-info {
+            background: #e8f5e9;
+            border: 2px solid #4caf50;
+            border-radius: 10px;
+            padding: 15px;
+            margin-top: 20px;
+        }
+        
+        .price-info h3 {
+            color: #2e7d32;
+            font-size: 18px;
+            margin-bottom: 10px;
+        }
+        
+        .price-tag {
+            font-size: 24px;
+            font-weight: bold;
+            color: #1b5e20;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="logo">📱</div>
+        <h1>MESSU BOUW Premium</h1>
+        <div class="version">
+            v14.1 - KVK Edition
+            <span class="new-badge">NOWE!</span>
+        </div>
+        
+        <div class="features">
+            <h2>🎉 Nowe funkcje w tej wersji</h2>
+            
+            <div class="feature-item">
+                <div class="feature-icon">🔍</div>
+                <div class="feature-text">
+                    <div class="feature-title">Wyszukiwanie KVK</div>
+                    <div class="feature-desc">Automatyczne wypełnianie danych firmy po numerze KVK lub nazwie</div>
+                </div>
+            </div>
+            
+            <div class="feature-item">
+                <div class="feature-icon">⚡</div>
+                <div class="feature-text">
+                    <div class="feature-title">Szybkie dodawanie klientów</div>
+                    <div class="feature-desc">Kliknij lupkę 🔍 obok pola KVK lub nazwy - dane wypełnią się automatycznie!</div>
+                </div>
+            </div>
+            
+            <div class="feature-item">
+                <div class="feature-icon">💾</div>
+                <div class="feature-text">
+                    <div class="feature-title">Cache danych</div>
+                    <div class="feature-desc">Wyszukane firmy są zapisywane na 7 dni - szybsze działanie</div>
+                </div>
+            </div>
+            
+            <div class="feature-item">
+                <div class="feature-icon">🇳🇱</div>
+                <div class="feature-text">
+                    <div class="feature-title">Automatyczny VAT</div>
+                    <div class="feature-desc">Numer VAT generowany automatycznie dla firm holenderskich</div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="price-info">
+            <h3>💰 Koszt KVK API (opcjonalnie)</h3>
+            <div class="price-tag">€6.20/miesiąc</div>
+            <div style="color: #2e7d32; margin-top: 8px;">
+                ✅ Wyszukiwanie: DARMOWE<br>
+                ✅ Wersja testowa: Włączona domyślnie
+            </div>
+        </div>
+        
+        <a href="/messu-bouw-kvk.apk" class="download-btn" download>
+            ⬇️ Pobierz APK (142 MB)
+        </a>
+        
+        <div class="file-info">
+            📦 messu-bouw-kvk.apk<br>
+            📅 Data: 6 listopada 2025<br>
+            🔢 Rozmiar: 142.67 MB
+        </div>
+        
+        <div class="instructions">
+            <h3>📋 Instrukcja instalacji:</h3>
+            <ol>
+                <li>Pobierz plik APK</li>
+                <li>Otwórz plik na telefonie Android</li>
+                <li>Zezwól na instalację z nieznanych źródeł (jeśli zapyta)</li>
+                <li>Zainstaluj aplikację</li>
+                <li>Gotowe! Idź do <strong>Klienci → Dodaj klienta</strong></li>
+                <li>Testuj KVK wpisując: <code>90004760</code> i klikając 🔍</li>
+            </ol>
+        </div>
+        
+        <div style="margin-top: 25px; padding-top: 20px; border-top: 1px solid #eee; color: #999; font-size: 14px;">
+            <p>📚 Szczegóły o KVK API: <strong>KVK-API-INSTRUKCJA.md</strong></p>
+            <p style="margin-top: 8px;">🌐 Localhost: <a href="http://localhost:5000" style="color: #667eea;">http://localhost:5000</a></p>
+        </div>
+    </div>
+</body>
+</html>

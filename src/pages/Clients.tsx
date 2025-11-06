@@ -11,9 +11,10 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Plus, PencilSimple, Trash, Users, User, Buildings } from '@phosphor-icons/react';
+import { Plus, PencilSimple, Trash, Users, User, Buildings, MagnifyingGlass, Check } from '@phosphor-icons/react';
 import { Client } from '@/types';
 import { toast } from 'sonner';
+import { searchByKvkNumber, searchByName, generateVATFromKVK, type KVKSearchResult } from '../lib/kvkApi';
 
 // Słownik krajów
 const COUNTRIES = {
@@ -72,7 +73,119 @@ export default function Clients() {
   });
 
   const [kvkLoading, setKvkLoading] = useState(false);
-  const [kvkResults, setKvkResults] = useState<any[]>([]);
+  const [kvkResults, setKvkResults] = useState<KVKSearchResult[]>([]);
+  const [showKvkResults, setShowKvkResults] = useState(false);
+
+  // Funkcja wyszukiwania po numerze KVK
+  const handleSearchByKVK = async () => {
+    console.log('🔍 handleSearchByKVK called');
+    console.log('Current KVK number:', formData.kvk_number);
+    
+    if (!formData.kvk_number || formData.kvk_number.trim().length < 8) {
+      console.log('⚠️ KVK number too short');
+      toast.error('Wpisz prawidłowy numer KVK (8 cyfr)');
+      return;
+    }
+
+    try {
+      console.log('🚀 Starting KVK search...');
+      setKvkLoading(true);
+      const result = await searchByKvkNumber(formData.kvk_number);
+      console.log('✅ Search completed, result:', result);
+      
+      if (result) {
+        // Auto-wypełnij formularz
+        setFormData({
+          ...formData,
+          name: result.name || formData.name,
+          address: `${result.address}, ${result.postalCode} ${result.city}`.trim() || formData.address,
+          vat_number: result.vatNumber || generateVATFromKVK(result.kvkNumber),
+          country: 'NL' // KVK to tylko Holandia
+        });
+        
+        console.log('✅ Form updated with KVK data');
+        toast.success(`Znaleziono: ${result.name}`);
+      } else {
+        console.log('⚠️ No result returned');
+      }
+    } catch (error) {
+      console.error('❌ KVK search failed:', error);
+      toast.error((error as Error).message);
+    } finally {
+      setKvkLoading(false);
+      console.log('🏁 Search finished');
+    }
+  };
+
+  // Funkcja wyszukiwania po nazwie firmy
+  const handleSearchByName = async () => {
+    console.log('🔍 handleSearchByName called');
+    console.log('Current name:', formData.name);
+    
+    if (!formData.name || formData.name.trim().length < 2) {
+      console.log('⚠️ Name too short');
+      toast.error('Wpisz co najmniej 2 znaki nazwy firmy');
+      return;
+    }
+
+    try {
+      console.log('🚀 Starting name search...');
+      setKvkLoading(true);
+      setKvkResults([]);
+      setShowKvkResults(false);
+      
+      const results = await searchByName(formData.name);
+      console.log('✅ Search completed, results:', results);
+      
+      if (results.length === 0) {
+        console.log('⚠️ No results found');
+        toast.info('Nie znaleziono firm o podanej nazwie');
+        return;
+      }
+      
+      if (results.length === 1) {
+        // Tylko jeden wynik - auto-wypełnij
+        console.log('✅ Single result, auto-filling form');
+        const result = results[0];
+        setFormData({
+          ...formData,
+          kvk_number: result.kvkNumber,
+          name: result.name,
+          address: result.address,
+          vat_number: result.vatNumber || generateVATFromKVK(result.kvkNumber),
+          country: 'NL'
+        });
+        toast.success(`Automatycznie wypełniono dane: ${result.name}`);
+      } else {
+        // Wiele wyników - pokaż listę do wyboru
+        console.log(`✅ Multiple results (${results.length}), showing selection list`);
+        setKvkResults(results);
+        setShowKvkResults(true);
+        toast.info(`Znaleziono ${results.length} firm - wybierz właściwą`);
+      }
+    } catch (error) {
+      console.error('❌ Name search failed:', error);
+      toast.error((error as Error).message);
+    } finally {
+      setKvkLoading(false);
+      console.log('🏁 Name search finished');
+    }
+  };
+
+  // Wybierz firmę z listy wyników
+  const handleSelectKVKResult = (result: KVKSearchResult) => {
+    setFormData({
+      ...formData,
+      kvk_number: result.kvkNumber,
+      name: result.name,
+      address: result.address,
+      vat_number: result.vatNumber || generateVATFromKVK(result.kvkNumber),
+      country: 'NL'
+    });
+    setShowKvkResults(false);
+    setKvkResults([]);
+    toast.success(`Wybrano: ${result.name}`);
+  };
 
   const filteredClients = useMemo(() => {
     if (!searchTerm) return migratedClients || [];
@@ -321,6 +434,7 @@ export default function Clients() {
           </DialogHeader>
 
           <div className="grid gap-4">
+            {/* Nazwa firmy z wyszukiwaniem KVK */}
             <div className="space-y-2">
               <Label htmlFor="name">{t('clients.name')} *</Label>
               <div className="flex gap-2">
@@ -330,112 +444,63 @@ export default function Clients() {
                   value={formData.name}
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                 />
-                <button
+                <Button
                   type="button"
-                  onClick={async () => {
-                    if (!formData.name || formData.name.trim().length < 3) {
-                      toast.error('Wpisz co najmniej 3 znaki nazwy, aby wyszukać w KVK');
-                      return;
-                    }
-
-                    try {
-                      setKvkLoading(true);
-                      setKvkResults([]);
-                      const res = await window.electronAPI?.kvk?.search?.(formData.name);
-                      if (!res) {
-                        toast.error('Brak odpowiedzi z API KVK');
-                        return;
-                      }
-                      if (!res.ok) {
-                        toast.error('KVK error: ' + (res.error || JSON.stringify(res)));
-                        return;
-                      }
-
-                      const items = res.items || [];
-                      if (items.length === 0) {
-                        toast.error('Nie znaleziono firmy w KVK');
-                      } else if (items.length === 1) {
-                        const it = items[0];
-                        const addr = it.address;
-                        let addressStr = '';
-                        if (addr) {
-                          if (typeof addr === 'string') addressStr = addr;
-                          else if (addr.street || addr.road) {
-                            addressStr = `${addr.street || addr.road} ${addr.houseNumber || ''}, ${addr.postalCode || addr.postcode || ''} ${addr.city || addr.place || ''}`.trim();
-                          } else {
-                            addressStr = JSON.stringify(addr);
-                          }
-                        }
-
-                        setFormData({
-                          ...formData,
-                          name: it.name || formData.name,
-                          address: addressStr || formData.address,
-                          kvk_number: it.kvkNumber || it.kvk || formData.kvk_number,
-                          vat_number: formData.vat_number || '',
-                          phone: it.phone || it.telefoon || formData.phone,
-                          email: it.email || formData.email,
-                        });
-
-                        toast.success('Dane uzupełnione z KVK');
-                      } else {
-                        setKvkResults(items);
-                        toast('Znaleziono kilka wyników, wybierz jedną pozycję z listy');
-                      }
-                    } catch (err) {
-                      console.error('KVK search error', err);
-                      toast.error('Błąd wyszukiwania KVK');
-                    } finally {
-                      setKvkLoading(false);
-                    }
-                  }}
-                  className="px-4 py-2 bg-blue-600 text-white rounded-xl hover:bg-blue-700"
+                  onClick={handleSearchByName}
+                  disabled={kvkLoading || !formData.name || formData.name.length < 2}
+                  variant="outline"
+                  className="shrink-0"
                 >
-                  {kvkLoading ? 'Szukam...' : 'Szukaj w KVK'}
-                </button>
+                  <MagnifyingGlass className="mr-2" size={16} />
+                  {kvkLoading ? 'Szukam...' : 'KVK'}
+                </Button>
               </div>
-              {kvkResults.length > 0 && (
-                <div className="mt-2 space-y-2">
-                  {kvkResults.map((r, idx) => (
-                    <div key={idx} className="flex items-center justify-between p-2 bg-gray-50 rounded-md border">
-                      <div>
-                        <div className="font-semibold">{r.name}</div>
-                        <div className="text-sm text-black">KVK: {r.kvkNumber || r.kvk || '-'}</div>
+              
+              {/* Lista wyników wyszukiwania KVK po nazwie */}
+              {showKvkResults && kvkResults.length > 0 && (
+                <div className="mt-2 space-y-2 max-h-60 overflow-y-auto border rounded-lg p-2 bg-slate-50">
+                  <p className="text-sm font-semibold text-slate-700 px-2 py-1">
+                    Znaleziono {kvkResults.length} firm - wybierz właściwą:
+                  </p>
+                  {kvkResults.map((result, idx) => (
+                    <div 
+                      key={idx} 
+                      className="flex items-start justify-between p-3 bg-white rounded-md border border-slate-200 hover:border-blue-400 transition-colors cursor-pointer"
+                      onClick={() => handleSelectKVKResult(result)}
+                    >
+                      <div className="flex-1">
+                        <div className="font-semibold text-black">{result.name}</div>
+                        <div className="text-sm text-slate-600">
+                          KVK: {result.kvkNumber}
+                        </div>
+                        <div className="text-sm text-slate-500">
+                          {result.address}, {result.postalCode} {result.city}
+                        </div>
                       </div>
-                      <div className="flex gap-2">
-                        <button
-                          onClick={() => {
-                            const it = r;
-                            const addr = it.address;
-                            let addressStr = '';
-                            if (addr) {
-                              if (typeof addr === 'string') addressStr = addr;
-                              else if (addr.street || addr.road) {
-                                addressStr = `${addr.street || addr.road} ${addr.houseNumber || ''}, ${addr.postalCode || addr.postcode || ''} ${addr.city || addr.place || ''}`.trim();
-                              } else {
-                                addressStr = JSON.stringify(addr);
-                              }
-                            }
-
-                            setFormData({
-                              ...formData,
-                              name: it.name || formData.name,
-                              address: addressStr || formData.address,
-                              kvk_number: it.kvkNumber || it.kvk || formData.kvk_number,
-                              phone: it.phone || it.telefoon || formData.phone,
-                              email: it.email || formData.email,
-                            });
-                            setKvkResults([]);
-                            toast.success('Wybrano firmę z KVK i uzupełniono pola');
-                          }}
-                          className="px-3 py-1 bg-linear-to-r from-sky-500 to-blue-600 hover:from-sky-600 hover:to-blue-700 text-white rounded-md"
-                        >
-                          Wybierz
-                        </button>
-                        <button onClick={() => setKvkResults([])} className="px-3 py-1 bg-gray-200 rounded-md">Anuluj</button>
-                      </div>
+                      <Button
+                        size="sm"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleSelectKVKResult(result);
+                        }}
+                        className="shrink-0 ml-2"
+                      >
+                        <Check size={16} className="mr-1" />
+                        Wybierz
+                      </Button>
                     </div>
                   ))}
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => {
+                      setShowKvkResults(false);
+                      setKvkResults([]);
+                    }}
+                    className="w-full"
+                  >
+                    Zamknij
+                  </Button>
                 </div>
               )}
             </div>
@@ -534,12 +599,24 @@ export default function Clients() {
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="kvk_number">{t('clients.kvkNumber')} (KVK)</Label>
-                  <Input
-                    id="kvk_number"
-                    placeholder="12345678"
-                    value={formData.kvk_number}
-                    onChange={(e) => setFormData({ ...formData, kvk_number: e.target.value })}
-                  />
+                  <div className="flex gap-2">
+                    <Input
+                      id="kvk_number"
+                      placeholder="12345678"
+                      value={formData.kvk_number}
+                      onChange={(e) => setFormData({ ...formData, kvk_number: e.target.value })}
+                    />
+                    <Button
+                      type="button"
+                      onClick={handleSearchByKVK}
+                      disabled={kvkLoading || !formData.kvk_number || formData.kvk_number.length !== 8}
+                      variant="outline"
+                      className="shrink-0"
+                      title="Wyszukaj dane firmy po numerze KVK"
+                    >
+                      <MagnifyingGlass size={16} />
+                    </Button>
+                  </div>
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="vat_number">{t('clients.vatNumber')} (BTW)</Label>

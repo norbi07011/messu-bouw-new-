@@ -359,7 +359,7 @@ Adres sieciowy: http://192.168.178.75:5002/
                 </div>
                 <div>
                   <h2 className="text-xl font-bold text-gray-900 dark:text-white">MESSU BOUW</h2>
-                  <p className="text-xs text-gray-600 dark:text-gray-400">Invoice System</p>
+                  <p className="text-xs text-gray-600 dark:text-gray-400">Invoice Management System</p>
                 </div>
               </div>
               {/* Audio Toggle - moved from header */}
