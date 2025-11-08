@@ -26,6 +26,39 @@ export default function Appointments() {
   const [viewMode, setViewMode] = useState<'calendar' | 'list'>('calendar');
   const [currentMonth, setCurrentMonth] = useState(new Date());
 
+  // Funkcja odtwarzania dźwięku powiadomienia
+  const playNotificationSound = () => {
+    try {
+      // Tworzenie syntetycznego dźwięku dzwonka
+      const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+      
+      // Pierwsza nuta (wyższa)
+      const oscillator1 = audioContext.createOscillator();
+      const gainNode1 = audioContext.createGain();
+      oscillator1.connect(gainNode1);
+      gainNode1.connect(audioContext.destination);
+      oscillator1.frequency.value = 800; // Wyższa częstotliwość
+      gainNode1.gain.setValueAtTime(0.3, audioContext.currentTime);
+      gainNode1.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.3);
+      oscillator1.start(audioContext.currentTime);
+      oscillator1.stop(audioContext.currentTime + 0.3);
+
+      // Druga nuta (niższa) - opóźniona
+      const oscillator2 = audioContext.createOscillator();
+      const gainNode2 = audioContext.createGain();
+      oscillator2.connect(gainNode2);
+      gainNode2.connect(audioContext.destination);
+      oscillator2.frequency.value = 600; // Niższa częstotliwość
+      gainNode2.gain.setValueAtTime(0, audioContext.currentTime + 0.1);
+      gainNode2.gain.setValueAtTime(0.3, audioContext.currentTime + 0.15);
+      gainNode2.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.5);
+      oscillator2.start(audioContext.currentTime + 0.1);
+      oscillator2.stop(audioContext.currentTime + 0.5);
+    } catch (error) {
+      console.error('Błąd odtwarzania dźwięku:', error);
+    }
+  };
+
   // Debug: Monitor dialog state
   useEffect(() => {
     console.log('🚪 Dialog state changed:', isDialogOpen);
@@ -58,6 +91,11 @@ export default function Appointments() {
         const diff = now.getTime() - reminderTime.getTime();
         if (diff > 0 && diff < 60000) {
           const clientName = clients.find(c => c.id === appointment.client_id)?.name || 'Klient';
+          
+          // Odtwórz dźwięk dzwonka
+          playNotificationSound();
+          
+          // Toast notification
           toast.info(`📅 Przypomnienie o spotkaniu`, {
             description: `${appointment.title} z ${clientName} za ${appointment.reminder_minutes} minut`,
             duration: 10000,
@@ -67,7 +105,9 @@ export default function Appointments() {
           if ('Notification' in window && Notification.permission === 'granted') {
             new Notification('Przypomnienie o spotkaniu', {
               body: `${appointment.title} z ${clientName} za ${appointment.reminder_minutes} minut`,
-              icon: '/messu-bouw-logo.jpg'
+              icon: '/messu-bouw-logo.jpg',
+              requireInteraction: false, // Automatycznie zniknie
+              tag: `appointment-${appointment.id}` // Unikalna identyfikacja
             });
           }
         }
