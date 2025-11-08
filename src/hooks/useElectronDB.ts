@@ -221,7 +221,8 @@ export function useInvoices() {
       if (isElectron() && window.electronAPI) {
         console.log('🖥️ Using Electron database');
         const result = await window.electronAPI.database.createInvoice(invoice);
-        await fetchInvoices(); // Odśwież listę
+        // Odśwież w tle, nie blokuj
+        fetchInvoices();
         return result;
       } else if (isMobile()) {
         console.log('📱 Using Capacitor Preferences');
@@ -232,7 +233,8 @@ export function useInvoices() {
         const updated = [...invoices, newInvoice];
         await Preferences.set({ key: 'invoices', value: JSON.stringify(updated) });
         console.log('✅ Invoice saved to Capacitor Preferences:', newInvoice.invoice_number);
-        await fetchInvoices();
+        // Odśwież w tle, nie blokuj
+        fetchInvoices();
         return newInvoice;
       } else {
         console.log('🌐 Using localStorage fallback');
@@ -241,9 +243,18 @@ export function useInvoices() {
         const invoices = stored ? JSON.parse(stored) : [];
         const newInvoice = { ...invoice, id: invoice.id || Date.now().toString(), created_at: invoice.created_at || new Date().toISOString() };
         const updated = [...invoices, newInvoice];
-        localStorage.setItem('invoices', JSON.stringify(updated));
-        console.log('✅ Invoice saved to localStorage:', newInvoice.invoice_number, 'Total:', updated.length);
-        await fetchInvoices();
+        
+        // Zapisz asynchronicznie w Web Worker (jeśli dostępny)
+        try {
+          localStorage.setItem('invoices', JSON.stringify(updated));
+          console.log('✅ Invoice saved to localStorage:', newInvoice.invoice_number, 'Total:', updated.length);
+        } catch (storageError) {
+          console.error('❌ localStorage quota exceeded:', storageError);
+          throw new Error('Storage quota exceeded. Please delete old invoices.');
+        }
+        
+        // Odśwież w tle, nie blokuj - użyj setTimeout
+        setTimeout(() => fetchInvoices(), 0);
         return newInvoice;
       }
     } catch (error) {
