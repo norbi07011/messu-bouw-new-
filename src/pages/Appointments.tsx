@@ -190,11 +190,11 @@ export default function Appointments() {
   const getStatusBadge = (status: string) => {
     switch (status) {
       case 'scheduled':
-        return <Badge variant="default" className="bg-blue-500">Zaplanowane</Badge>;
+        return <Badge variant="default" className="bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-md hover:shadow-lg transition-all">Zaplanowane</Badge>;
       case 'completed':
-        return <Badge variant="default" className="bg-green-500">Zakończone</Badge>;
+        return <Badge variant="default" className="bg-gradient-to-r from-green-500 to-emerald-600 text-white shadow-md hover:shadow-lg transition-all">Zakończone</Badge>;
       case 'cancelled':
-        return <Badge variant="destructive">Anulowane</Badge>;
+        return <Badge variant="destructive" className="bg-gradient-to-r from-red-500 to-rose-600 shadow-md hover:shadow-lg transition-all">Anulowane</Badge>;
       default:
         return null;
     }
@@ -261,83 +261,119 @@ export default function Appointments() {
         <div
           key={day}
           onClick={() => handleDateClick(dateStr)}
-          className={`h-32 border border-gray-200 dark:border-gray-700 p-2 cursor-pointer hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors ${
-            isToday ? 'bg-blue-100 dark:bg-blue-900/30 ring-2 ring-blue-500' : 'bg-white dark:bg-gray-800'
+          className={`group relative h-36 border-2 p-3 cursor-pointer transition-all duration-300 overflow-hidden ${
+            isToday 
+              ? 'bg-gradient-to-br from-blue-50 to-sky-100 dark:from-blue-900/40 dark:to-sky-900/40 border-blue-400 dark:border-blue-500 shadow-lg shadow-blue-200/50 dark:shadow-blue-900/30 ring-2 ring-blue-400 dark:ring-blue-500' 
+              : 'bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 hover:border-blue-300 dark:hover:border-blue-600 hover:shadow-xl hover:shadow-blue-100/50 dark:hover:shadow-blue-900/20 hover:-translate-y-1'
           }`}
         >
-          <div className={`text-sm font-semibold mb-1 ${isToday ? 'text-blue-600 dark:text-blue-400' : 'text-gray-700 dark:text-gray-300'}`}>
+          {/* Dzień miesiąca */}
+          <div className={`text-lg font-bold mb-2 transition-colors ${
+            isToday 
+              ? 'text-blue-600 dark:text-blue-300' 
+              : 'text-gray-700 dark:text-gray-300 group-hover:text-blue-600 dark:group-hover:text-blue-400'
+          }`}>
             {day}
           </div>
-          <div className="space-y-1 overflow-y-auto max-h-20">
-            {dayAppointments.map((apt, idx) => (
+          
+          {/* Spotkania */}
+          <div className="space-y-1.5 overflow-y-auto max-h-20 scrollbar-thin scrollbar-thumb-gray-300 dark:scrollbar-thumb-gray-600">
+            {dayAppointments.map((apt) => (
               <div
                 key={apt.id}
                 onClick={(e) => {
                   e.stopPropagation();
                   handleOpenDialog(apt);
                 }}
-                className={`text-xs p-1 rounded truncate ${
-                  apt.status === 'scheduled' ? 'bg-blue-500 text-white' :
-                  apt.status === 'completed' ? 'bg-green-500 text-white' :
-                  'bg-red-500 text-white'
+                className={`text-xs px-2 py-1.5 rounded-lg truncate font-medium shadow-sm hover:shadow-md transition-all duration-200 hover:scale-105 ${
+                  apt.status === 'scheduled' 
+                    ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white hover:from-blue-600 hover:to-blue-700' 
+                    : apt.status === 'completed' 
+                    ? 'bg-gradient-to-r from-green-500 to-emerald-600 text-white hover:from-green-600 hover:to-emerald-700' 
+                    : 'bg-gradient-to-r from-red-500 to-rose-600 text-white hover:from-red-600 hover:to-rose-700'
                 }`}
                 title={`${apt.time} - ${apt.title}`}
               >
-                {apt.time} {apt.title}
+                <div className="flex items-center gap-1">
+                  <Clock className="w-3 h-3" />
+                  <span className="font-semibold">{apt.time}</span>
+                  <span className="truncate">{apt.title}</span>
+                </div>
               </div>
             ))}
           </div>
+          
+          {/* Hover overlay */}
+          <div className="absolute inset-0 bg-gradient-to-br from-blue-500/0 to-blue-500/0 group-hover:from-blue-500/5 group-hover:to-sky-500/5 dark:group-hover:from-blue-500/10 dark:group-hover:to-sky-500/10 transition-all duration-300 pointer-events-none"></div>
         </div>
       );
     }
 
     return (
-      <div className="space-y-4">
+      <div className="space-y-6">
         {/* Nawigacja kalendarza */}
-        <div className="flex items-center justify-between">
-          <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
+        <div className="flex items-center justify-between bg-gradient-to-r from-blue-50 to-sky-50 dark:from-gray-800 dark:to-gray-900 p-4 rounded-xl shadow-sm">
+          <h2 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-sky-600 dark:from-blue-400 dark:to-sky-400 bg-clip-text text-transparent">
             {monthNames[month]} {year}
           </h2>
           <div className="flex gap-2">
-            <Button variant="outline" size="sm" onClick={goToToday}>
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={goToToday}
+              className="bg-white dark:bg-gray-800 hover:bg-blue-50 dark:hover:bg-blue-900/20 border-blue-200 dark:border-blue-800 text-blue-600 dark:text-blue-400 font-semibold shadow-sm hover:shadow-md transition-all"
+            >
               Dzisiaj
             </Button>
-            <Button variant="outline" size="sm" onClick={previousMonth}>
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={previousMonth}
+              className="bg-white dark:bg-gray-800 hover:bg-blue-50 dark:hover:bg-blue-900/20 hover:scale-110 transition-all shadow-sm"
+            >
               <CaretLeft className="w-4 h-4" />
             </Button>
-            <Button variant="outline" size="sm" onClick={nextMonth}>
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={nextMonth}
+              className="bg-white dark:bg-gray-800 hover:bg-blue-50 dark:hover:bg-blue-900/20 hover:scale-110 transition-all shadow-sm"
+            >
               <CaretRight className="w-4 h-4" />
             </Button>
           </div>
         </div>
 
         {/* Nagłówki dni tygodnia */}
-        <div className="grid grid-cols-7 gap-0">
+        <div className="grid grid-cols-7 gap-2">
           {dayNames.map(name => (
-            <div key={name} className="text-center font-semibold text-gray-600 dark:text-gray-400 p-2 bg-gray-100 dark:bg-gray-800">
+            <div 
+              key={name} 
+              className="text-center font-bold text-sm text-gray-600 dark:text-gray-400 p-3 bg-gradient-to-b from-gray-100 to-gray-50 dark:from-gray-800 dark:to-gray-900 rounded-lg shadow-sm"
+            >
               {name}
             </div>
           ))}
         </div>
 
         {/* Dni */}
-        <div className="grid grid-cols-7 gap-0 border border-gray-200 dark:border-gray-700">
+        <div className="grid grid-cols-7 gap-2">
           {days}
         </div>
 
         {/* Legenda */}
-        <div className="flex gap-4 text-sm">
+        <div className="flex gap-6 text-sm bg-gradient-to-r from-gray-50 to-white dark:from-gray-800 dark:to-gray-900 p-4 rounded-xl shadow-sm">
           <div className="flex items-center gap-2">
-            <div className="w-4 h-4 bg-blue-500 rounded"></div>
-            <span>Zaplanowane</span>
+            <div className="w-5 h-5 rounded-lg bg-gradient-to-r from-blue-500 to-blue-600 shadow-md"></div>
+            <span className="font-medium text-gray-700 dark:text-gray-300">Zaplanowane</span>
           </div>
           <div className="flex items-center gap-2">
-            <div className="w-4 h-4 bg-green-500 rounded"></div>
-            <span>Zakończone</span>
+            <div className="w-5 h-5 rounded-lg bg-gradient-to-r from-green-500 to-emerald-600 shadow-md"></div>
+            <span className="font-medium text-gray-700 dark:text-gray-300">Ukończone</span>
           </div>
           <div className="flex items-center gap-2">
-            <div className="w-4 h-4 bg-red-500 rounded"></div>
-            <span>Anulowane</span>
+            <div className="w-5 h-5 rounded-lg bg-gradient-to-r from-red-500 to-rose-600 shadow-md"></div>
+            <span className="font-medium text-gray-700 dark:text-gray-300">Anulowane</span>
           </div>
         </div>
       </div>
@@ -357,25 +393,29 @@ export default function Appointments() {
 
   return (
     <div className="container mx-auto p-6">
-      <Card>
-        <CardHeader>
+      <Card className="shadow-2xl border-0 bg-gradient-to-br from-white to-gray-50 dark:from-gray-900 dark:to-gray-800">
+        <CardHeader className="bg-gradient-to-r from-blue-500 to-sky-500 text-white rounded-t-xl">
           <div className="flex items-center justify-between">
             <div>
-              <CardTitle className="flex items-center gap-2">
-                <Calendar className="w-6 h-6" />
+              <CardTitle className="flex items-center gap-3 text-2xl">
+                <div className="p-2 bg-white/20 backdrop-blur-sm rounded-lg">
+                  <Calendar className="w-7 h-7" />
+                </div>
                 Kalendarz Spotkań
               </CardTitle>
-              <CardDescription>
+              <CardDescription className="text-blue-100 mt-2 text-base">
                 Zarządzaj spotkaniami z klientami i otrzymuj powiadomienia
               </CardDescription>
             </div>
-            <div className="flex gap-2">
-              <div className="flex bg-gray-100 dark:bg-gray-800 rounded-lg p-1">
+            <div className="flex gap-3">
+              <div className="flex bg-white/10 backdrop-blur-md rounded-xl p-1.5 shadow-lg">
                 <Button
                   variant={viewMode === 'calendar' ? 'default' : 'ghost'}
                   size="sm"
                   onClick={() => setViewMode('calendar')}
-                  className={viewMode === 'calendar' ? 'bg-blue-500 hover:bg-blue-600' : ''}
+                  className={viewMode === 'calendar' 
+                    ? 'bg-white text-blue-600 hover:bg-white/90 shadow-md' 
+                    : 'text-white hover:bg-white/20'}
                 >
                   <Calendar className="w-4 h-4 mr-2" />
                   Kalendarz
@@ -384,13 +424,18 @@ export default function Appointments() {
                   variant={viewMode === 'list' ? 'default' : 'ghost'}
                   size="sm"
                   onClick={() => setViewMode('list')}
-                  className={viewMode === 'list' ? 'bg-blue-500 hover:bg-blue-600' : ''}
+                  className={viewMode === 'list' 
+                    ? 'bg-white text-blue-600 hover:bg-white/90 shadow-md' 
+                    : 'text-white hover:bg-white/20'}
                 >
                   <List className="w-4 h-4 mr-2" />
                   Lista
                 </Button>
               </div>
-              <Button onClick={() => handleOpenDialog()}>
+              <Button 
+                onClick={() => handleOpenDialog()}
+                className="bg-white text-blue-600 hover:bg-white/90 shadow-lg hover:shadow-xl transition-all hover:scale-105 font-semibold"
+              >
                 <Plus className="w-4 h-4 mr-2" />
                 Nowe spotkanie
               </Button>
@@ -398,7 +443,7 @@ export default function Appointments() {
           </div>
         </CardHeader>
 
-        <CardContent>
+        <CardContent className="p-6">
           {viewMode === 'calendar' ? (
             renderCalendar()
           ) : (
@@ -407,20 +452,20 @@ export default function Appointments() {
               <div className="flex gap-4 mb-6">
             <div className="flex-1">
               <div className="relative">
-                <MagnifyingGlass className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                <MagnifyingGlass className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-blue-400" />
                 <Input
                   placeholder="Szukaj spotkań..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10"
+                  className="pl-10 border-2 border-gray-200 dark:border-gray-700 focus:border-blue-400 dark:focus:border-blue-500 rounded-xl shadow-sm hover:shadow-md transition-all"
                 />
               </div>
             </div>
             <Select value={statusFilter} onValueChange={setStatusFilter}>
-              <SelectTrigger className="w-[200px]">
+              <SelectTrigger className="w-[200px] border-2 border-gray-200 dark:border-gray-700 focus:border-blue-400 rounded-xl shadow-sm hover:shadow-md transition-all">
                 <SelectValue placeholder="Status" />
               </SelectTrigger>
-              <SelectContent>
+              <SelectContent className="rounded-xl shadow-xl">
                 <SelectItem value="all">Wszystkie</SelectItem>
                 <SelectItem value="scheduled">Zaplanowane</SelectItem>
                 <SelectItem value="completed">Zakończone</SelectItem>
@@ -430,45 +475,51 @@ export default function Appointments() {
           </div>
 
           {/* Tabela spotkań */}
-          <div className="rounded-md border">
+          <div className="rounded-xl border-2 border-gray-200 dark:border-gray-700 overflow-hidden shadow-lg">
             <Table>
               <TableHeader>
-                <TableRow>
-                  <TableHead>Tytuł</TableHead>
-                  <TableHead>Klient</TableHead>
-                  <TableHead>Data i czas</TableHead>
-                  <TableHead>Czas trwania</TableHead>
-                  <TableHead>Lokalizacja</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Przypomnienie</TableHead>
-                  <TableHead className="text-right">Akcje</TableHead>
+                <TableRow className="bg-gradient-to-r from-gray-50 to-gray-100 dark:from-gray-800 dark:to-gray-900 hover:from-gray-100 hover:to-gray-200 dark:hover:from-gray-700 dark:hover:to-gray-800">
+                  <TableHead className="font-bold text-gray-700 dark:text-gray-300">Tytuł</TableHead>
+                  <TableHead className="font-bold text-gray-700 dark:text-gray-300">Klient</TableHead>
+                  <TableHead className="font-bold text-gray-700 dark:text-gray-300">Data i czas</TableHead>
+                  <TableHead className="font-bold text-gray-700 dark:text-gray-300">Czas trwania</TableHead>
+                  <TableHead className="font-bold text-gray-700 dark:text-gray-300">Lokalizacja</TableHead>
+                  <TableHead className="font-bold text-gray-700 dark:text-gray-300">Status</TableHead>
+                  <TableHead className="font-bold text-gray-700 dark:text-gray-300">Przypomnienie</TableHead>
+                  <TableHead className="text-right font-bold text-gray-700 dark:text-gray-300">Akcje</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {filteredAppointments.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={8} className="text-center py-8 text-gray-500">
-                      Brak spotkań
+                    <TableCell colSpan={8} className="text-center py-12">
+                      <div className="flex flex-col items-center gap-3">
+                        <Calendar className="w-16 h-16 text-gray-300 dark:text-gray-600" />
+                        <p className="text-gray-500 dark:text-gray-400 font-medium text-lg">Brak spotkań</p>
+                      </div>
                     </TableCell>
                   </TableRow>
                 ) : (
                   filteredAppointments.map((appointment) => {
                     const client = clients.find(c => c.id === appointment.client_id);
                     return (
-                      <TableRow key={appointment.id}>
-                        <TableCell className="font-medium">{appointment.title}</TableCell>
-                        <TableCell>{client?.name || '-'}</TableCell>
+                      <TableRow 
+                        key={appointment.id}
+                        className="hover:bg-gradient-to-r hover:from-blue-50/50 hover:to-sky-50/50 dark:hover:from-blue-900/20 dark:hover:to-sky-900/20 transition-all duration-200"
+                      >
+                        <TableCell className="font-semibold text-gray-900 dark:text-gray-100">{appointment.title}</TableCell>
+                        <TableCell className="text-gray-700 dark:text-gray-300">{client?.name || '-'}</TableCell>
                         <TableCell>
-                          <div className="flex items-center gap-2">
-                            <Clock className="w-4 h-4 text-gray-400" />
+                          <div className="flex items-center gap-2 text-gray-700 dark:text-gray-300">
+                            <Clock className="w-4 h-4 text-blue-500" />
                             {formatDateTime(appointment.date, appointment.time)}
                           </div>
                         </TableCell>
-                        <TableCell>{appointment.duration} min</TableCell>
+                        <TableCell className="text-gray-700 dark:text-gray-300">{appointment.duration} min</TableCell>
                         <TableCell>
                           {appointment.location ? (
-                            <div className="flex items-center gap-2">
-                              <MapPin className="w-4 h-4 text-gray-400" />
+                            <div className="flex items-center gap-2 text-gray-700 dark:text-gray-300">
+                              <MapPin className="w-4 h-4 text-blue-500" />
                               {appointment.location}
                             </div>
                           ) : '-'}
@@ -476,7 +527,7 @@ export default function Appointments() {
                         <TableCell>{getStatusBadge(appointment.status)}</TableCell>
                         <TableCell>
                           {appointment.reminder_minutes > 0 ? (
-                            <div className="flex items-center gap-2">
+                            <div className="flex items-center gap-2 text-gray-700 dark:text-gray-300">
                               <Bell className="w-4 h-4 text-blue-500" />
                               {appointment.reminder_minutes} min
                             </div>
@@ -488,15 +539,17 @@ export default function Appointments() {
                               size="sm"
                               variant="ghost"
                               onClick={() => handleOpenDialog(appointment)}
+                              className="hover:bg-blue-100 dark:hover:bg-blue-900/40 hover:scale-110 transition-all"
                             >
-                              <PencilSimple className="w-4 h-4" />
+                              <PencilSimple className="w-4 h-4 text-blue-600 dark:text-blue-400" />
                             </Button>
                             <Button
                               size="sm"
                               variant="ghost"
                               onClick={() => handleDelete(appointment.id)}
+                              className="hover:bg-red-100 dark:hover:bg-red-900/40 hover:scale-110 transition-all"
                             >
-                              <Trash className="w-4 h-4 text-red-500" />
+                              <Trash className="w-4 h-4 text-red-600 dark:text-red-400" />
                             </Button>
                           </div>
                         </TableCell>
