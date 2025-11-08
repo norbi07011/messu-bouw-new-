@@ -9,7 +9,23 @@ const isElectron = () => {
 
 // Sprawdź czy działamy na urządzeniu mobilnym (Capacitor)
 const isMobile = () => {
-  return Capacitor.isNativePlatform();
+  // Najpierw sprawdź czy to natywna app Capacitor
+  if (Capacitor.isNativePlatform()) {
+    console.log('🔵 MOBILE DETECTED: Capacitor Native Platform');
+    return true;
+  }
+  
+  // Sprawdź czy to przeglądarka mobilna
+  const userAgent = navigator.userAgent.toLowerCase();
+  const isMobileBrowser = /android|webos|iphone|ipad|ipod|blackberry|iemobile|opera mini/i.test(userAgent);
+  
+  if (isMobileBrowser) {
+    console.log('🟡 MOBILE BROWSER DETECTED:', userAgent);
+    // Użyj localStorage zamiast Capacitor Preferences dla przeglądarki mobilnej
+    return false; // Zwróć false aby używać localStorage
+  }
+  
+  return false;
 };
 
 // Uniwersalna funkcja do odczytu z storage
@@ -168,20 +184,30 @@ export function useInvoices() {
   const fetchInvoices = useCallback(async () => {
     setLoading(true);
     try {
+      console.log('📥 fetchInvoices called:', { isElectron: isElectron(), isMobile: isMobile() });
+      
       if (isElectron() && window.electronAPI) {
+        console.log('🖥️ Fetching from Electron database');
         const result = await window.electronAPI.database.getInvoices();
         setInvoices(result || []);
+        console.log('✅ Loaded from Electron:', result?.length || 0, 'invoices');
       } else if (isMobile()) {
+        console.log('📱 Fetching from Capacitor Preferences');
         // Użyj Capacitor Preferences na urządzeniach mobilnych
         const { value } = await Preferences.get({ key: 'invoices' });
-        setInvoices(value ? JSON.parse(value) : []);
+        const data = value ? JSON.parse(value) : [];
+        setInvoices(data);
+        console.log('✅ Loaded from Capacitor:', data.length, 'invoices');
       } else {
+        console.log('🌐 Fetching from localStorage');
         // Fallback na localStorage
         const stored = localStorage.getItem('invoices');
-        setInvoices(stored ? JSON.parse(stored) : []);
+        const data = stored ? JSON.parse(stored) : [];
+        setInvoices(data);
+        console.log('✅ Loaded from localStorage:', data.length, 'invoices');
       }
     } catch (error) {
-      console.error('Error fetching invoices:', error);
+      console.error('❌ Error fetching invoices:', error);
       setInvoices([]);
     } finally {
       setLoading(false);
@@ -190,31 +216,38 @@ export function useInvoices() {
 
   const createInvoice = useCallback(async (invoice: any) => {
     try {
+      console.log('💾 createInvoice called:', { invoice, isElectron: isElectron(), isMobile: isMobile() });
+      
       if (isElectron() && window.electronAPI) {
+        console.log('🖥️ Using Electron database');
         const result = await window.electronAPI.database.createInvoice(invoice);
         await fetchInvoices(); // Odśwież listę
         return result;
       } else if (isMobile()) {
+        console.log('📱 Using Capacitor Preferences');
         // Użyj Capacitor Preferences na urządzeniach mobilnych
         const { value } = await Preferences.get({ key: 'invoices' });
         const invoices = value ? JSON.parse(value) : [];
-        const newInvoice = { ...invoice, id: Date.now().toString() };
+        const newInvoice = { ...invoice, id: invoice.id || Date.now().toString(), created_at: invoice.created_at || new Date().toISOString() };
         const updated = [...invoices, newInvoice];
         await Preferences.set({ key: 'invoices', value: JSON.stringify(updated) });
+        console.log('✅ Invoice saved to Capacitor Preferences:', newInvoice.invoice_number);
         await fetchInvoices();
         return newInvoice;
       } else {
+        console.log('🌐 Using localStorage fallback');
         // Fallback na localStorage
         const stored = localStorage.getItem('invoices');
         const invoices = stored ? JSON.parse(stored) : [];
-        const newInvoice = { ...invoice, id: Date.now().toString() };
+        const newInvoice = { ...invoice, id: invoice.id || Date.now().toString(), created_at: invoice.created_at || new Date().toISOString() };
         const updated = [...invoices, newInvoice];
         localStorage.setItem('invoices', JSON.stringify(updated));
+        console.log('✅ Invoice saved to localStorage:', newInvoice.invoice_number, 'Total:', updated.length);
         await fetchInvoices();
         return newInvoice;
       }
     } catch (error) {
-      console.error('Error creating invoice:', error);
+      console.error('❌ Error creating invoice:', error);
       throw error;
     }
   }, [fetchInvoices]);
