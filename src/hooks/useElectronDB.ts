@@ -929,17 +929,23 @@ export function useAppointments() {
   const [loading, setLoading] = useState(true);
 
   const fetchAppointments = useCallback(async () => {
+    console.log('📅 fetchAppointments called');
     setLoading(true);
     try {
       if (isElectron() && window.electronAPI?.database?.getAppointments) {
+        console.log('📅 Using Electron API');
         const data = await window.electronAPI.database.getAppointments();
+        console.log('📅 Fetched appointments:', data);
         setAppointments(data || []);
       } else {
+        console.log('📅 Using localStorage');
         const stored = await getStorageItem('appointments');
-        setAppointments(stored ? JSON.parse(stored) : []);
+        const parsed = stored ? JSON.parse(stored) : [];
+        console.log('📅 Fetched appointments from storage:', parsed);
+        setAppointments(parsed);
       }
     } catch (error) {
-      console.error('Error fetching appointments:', error);
+      console.error('❌ Error fetching appointments:', error);
       setAppointments([]);
     } finally {
       setLoading(false);
@@ -947,60 +953,87 @@ export function useAppointments() {
   }, []);
 
   const createAppointment = useCallback(async (appointment: any) => {
+    console.log('📅 createAppointment called with:', appointment);
     try {
       if (isElectron() && window.electronAPI?.database?.createAppointment) {
+        console.log('📅 Creating via Electron API');
         const newAppointment = await window.electronAPI.database.createAppointment(appointment);
         await fetchAppointments();
         return newAppointment;
       } else {
+        console.log('📅 Creating via localStorage');
         const newAppointment = { 
           ...appointment, 
           id: Date.now().toString(), 
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString()
         };
-        const updated = [...appointments, newAppointment];
+        console.log('📅 New appointment:', newAppointment);
+        
+        // Pobierz aktualne spotkania
+        const stored = await getStorageItem('appointments');
+        const currentAppointments = stored ? JSON.parse(stored) : [];
+        const updated = [...currentAppointments, newAppointment];
+        
+        console.log('📅 Saving to storage:', updated);
         await setStorageItem('appointments', JSON.stringify(updated));
-        setAppointments(updated);
+        
+        // Odśwież po zapisie
+        setTimeout(() => {
+          fetchAppointments();
+        }, 0);
+        
         return newAppointment;
       }
     } catch (error) {
-      console.error('Error creating appointment:', error);
+      console.error('❌ Error creating appointment:', error);
       throw error;
     }
-  }, [appointments, fetchAppointments]);
+  }, [fetchAppointments]);
 
   const updateAppointment = useCallback(async (id: string, appointment: any) => {
+    console.log('📅 updateAppointment called:', id, appointment);
     try {
       if (isElectron() && window.electronAPI?.database?.updateAppointment) {
         await window.electronAPI.database.updateAppointment(id, appointment);
         await fetchAppointments();
       } else {
-        const updated = appointments.map(a => a.id === id ? { ...a, ...appointment, updated_at: new Date().toISOString() } : a);
+        const stored = await getStorageItem('appointments');
+        const currentAppointments = stored ? JSON.parse(stored) : [];
+        const updated = currentAppointments.map((a: any) => 
+          a.id === id ? { ...a, ...appointment, updated_at: new Date().toISOString() } : a
+        );
         await setStorageItem('appointments', JSON.stringify(updated));
-        setAppointments(updated);
+        setTimeout(() => {
+          fetchAppointments();
+        }, 0);
       }
     } catch (error) {
-      console.error('Error updating appointment:', error);
+      console.error('❌ Error updating appointment:', error);
       throw error;
     }
-  }, [appointments, fetchAppointments]);
+  }, [fetchAppointments]);
 
   const deleteAppointment = useCallback(async (id: string) => {
+    console.log('📅 deleteAppointment called:', id);
     try {
       if (isElectron() && window.electronAPI?.database?.deleteAppointment) {
         await window.electronAPI.database.deleteAppointment(id);
         await fetchAppointments();
       } else {
-        const updated = appointments.filter(a => a.id !== id);
+        const stored = await getStorageItem('appointments');
+        const currentAppointments = stored ? JSON.parse(stored) : [];
+        const updated = currentAppointments.filter((a: any) => a.id !== id);
         await setStorageItem('appointments', JSON.stringify(updated));
-        setAppointments(updated);
+        setTimeout(() => {
+          fetchAppointments();
+        }, 0);
       }
     } catch (error) {
-      console.error('Error deleting appointment:', error);
+      console.error('❌ Error deleting appointment:', error);
       throw error;
     }
-  }, [appointments, fetchAppointments]);
+  }, [fetchAppointments]);
 
   useEffect(() => {
     fetchAppointments();
