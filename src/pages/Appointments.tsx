@@ -26,6 +26,11 @@ export default function Appointments() {
   const [viewMode, setViewMode] = useState<'calendar' | 'list'>('calendar');
   const [currentMonth, setCurrentMonth] = useState(new Date());
 
+  // Debug: Monitor dialog state
+  useEffect(() => {
+    console.log('🚪 Dialog state changed:', isDialogOpen);
+  }, [isDialogOpen]);
+
   const [formData, setFormData] = useState({
     title: '',
     client_id: '',
@@ -109,7 +114,9 @@ export default function Appointments() {
   }, [appointments, statusFilter, searchTerm]);
 
   const handleOpenDialog = (appointment?: Appointment, prefilledDate?: string) => {
+    console.log('🔔 handleOpenDialog called', { appointment, prefilledDate });
     if (appointment) {
+      console.log('📝 Editing appointment');
       setEditingAppointment(appointment);
       setFormData({
         title: appointment.title,
@@ -123,9 +130,10 @@ export default function Appointments() {
         status: appointment.status,
       });
     } else {
+      console.log('➕ Creating new appointment');
       setEditingAppointment(null);
       const today = new Date().toISOString().split('T')[0];
-      setFormData({
+      const newFormData = {
         title: '',
         client_id: '',
         date: prefilledDate || today,
@@ -134,10 +142,14 @@ export default function Appointments() {
         location: '',
         description: '',
         reminder_minutes: 30,
-        status: 'scheduled',
-      });
+        status: 'scheduled' as 'scheduled' | 'completed' | 'cancelled',
+      };
+      console.log('📋 Form data:', newFormData);
+      setFormData(newFormData);
     }
+    console.log('🚪 Opening dialog...');
     setIsDialogOpen(true);
+    console.log('🚪 Dialog should be open now');
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
