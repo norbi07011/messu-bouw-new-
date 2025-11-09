@@ -1,0 +1,1 @@
+import{p as a,l as i,X as s,Y as r,q as x}from"./index-sIZe-0BC.js";var p=a({chartName:"LineChart",GraphicalChild:i,axisComponents:[{axisType:"xAxis",AxisComp:s},{axisType:"yAxis",AxisComp:r}],formatAxisMap:x});export{p as L};
