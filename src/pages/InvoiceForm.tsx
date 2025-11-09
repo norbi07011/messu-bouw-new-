@@ -277,16 +277,16 @@ export default function InvoiceForm({ onNavigate }: InvoiceFormProps) {
           <div className="flex items-center gap-3 mt-2">
             <Badge variant="outline" className="gap-1">
               <CalendarBlank size={14} />
-              Tydzień / Week {weekNumber}, {invoiceBreakdown.year}
+              {t('invoiceForm.week')} {weekNumber}, {invoiceBreakdown.year}
             </Badge>
             <Badge variant="outline" className="gap-1">
               <Hash size={14} />
-              Miesiąc / Month {invoiceBreakdown.month.toString().padStart(2, '0')}/{invoiceBreakdown.year}
+              {t('invoiceForm.month')} {invoiceBreakdown.month.toString().padStart(2, '0')}/{invoiceBreakdown.year}
             </Badge>
             {numberingMode === 'auto' && (
               <Badge variant="secondary" className="gap-1">
                 <Hash size={14} />
-                Następny numer / Next: {invoiceBreakdown.year}{invoiceBreakdown.month.toString().padStart(2, '0')}-{nextSeq.toString().padStart(3, '0')}
+                {t('invoiceForm.nextNumber')}: {invoiceBreakdown.year}{invoiceBreakdown.month.toString().padStart(2, '0')}-{nextSeq.toString().padStart(3, '0')}
               </Badge>
             )}
           </div>
@@ -302,16 +302,16 @@ export default function InvoiceForm({ onNavigate }: InvoiceFormProps) {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Hash className="w-5 h-5" />
-              Numeracja faktury / Invoice Numbering
+              {t('invoiceForm.invoiceNumbering')}
             </CardTitle>
             <CardDescription>
-              Wybierz tryb numeracji: automatyczny (zalecany) lub ręczny / Choose numbering mode: automatic (recommended) or manual
+              {t('invoiceForm.numberingDescription')}
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="numberingMode">Tryb numeracji / Numbering Mode *</Label>
+                <Label htmlFor="numberingMode">{t('invoiceForm.numberingMode')} *</Label>
                 <Select value={numberingMode} onValueChange={(v: 'auto' | 'manual') => setNumberingMode(v)}>
                   <SelectTrigger id="numberingMode">
                     <SelectValue />
@@ -321,8 +321,8 @@ export default function InvoiceForm({ onNavigate }: InvoiceFormProps) {
                       <div className="flex items-center gap-2">
                         <Hash size={16} />
                         <div>
-                          <div className="font-medium">Automatyczny / Automatic</div>
-                          <div className="text-xs text-muted-foreground">Format: RRRRMMM-NNN (rok, miesiąc, numer)</div>
+                          <div className="font-medium">{t('invoiceForm.automatic')}</div>
+                          <div className="text-xs text-muted-foreground">{t('invoiceForm.automaticDescription')}</div>
                         </div>
                       </div>
                     </SelectItem>
@@ -330,8 +330,8 @@ export default function InvoiceForm({ onNavigate }: InvoiceFormProps) {
                       <div className="flex items-center gap-2">
                         <Hash size={16} />
                         <div>
-                          <div className="font-medium">Ręczny / Manual</div>
-                          <div className="text-xs text-muted-foreground">Wprowadź własny numer faktury</div>
+                          <div className="font-medium">{t('invoiceForm.manual')}</div>
+                          <div className="text-xs text-muted-foreground">{t('invoiceForm.manualDescription')}</div>
                         </div>
                       </div>
                     </SelectItem>
@@ -341,32 +341,32 @@ export default function InvoiceForm({ onNavigate }: InvoiceFormProps) {
 
               {numberingMode === 'auto' ? (
                 <div className="space-y-2">
-                  <Label>Podgląd numeru / Number Preview</Label>
+                  <Label>{t('invoiceForm.numberPreview')}</Label>
                   <div className="p-3 rounded-lg border-2 border-blue-300 dark:border-blue-700 bg-blue-50 dark:bg-blue-950/50">
                     <div className="text-2xl font-bold text-blue-700 dark:text-blue-300 font-mono">
                       {invoiceBreakdown.year}{invoiceBreakdown.month.toString().padStart(2, '0')}-{nextSeq.toString().padStart(3, '0')}
                     </div>
                     <div className="text-xs text-muted-foreground mt-1">
-                      Rok {invoiceBreakdown.year}, Miesiąc {invoiceBreakdown.month.toString().padStart(2, '0')}, Numer {nextSeq.toString().padStart(3, '0')}
+                      {t('invoiceForm.year')} {invoiceBreakdown.year}, {t('invoiceForm.monthLabel')} {invoiceBreakdown.month.toString().padStart(2, '0')}, {t('invoiceForm.nextNumber')} {nextSeq.toString().padStart(3, '0')}
                     </div>
                     <div className="text-xs text-blue-600 dark:text-blue-400 mt-1 flex items-center gap-1">
                       <CalendarBlank size={12} />
-                      Tydzień {weekNumber}
+                      {t('invoiceForm.week')} {weekNumber}
                     </div>
                   </div>
                 </div>
               ) : (
                 <div className="space-y-2">
-                  <Label htmlFor="manualNumber">Numer faktury / Invoice Number *</Label>
+                  <Label htmlFor="manualNumber">{t('invoiceForm.invoiceNumber')} *</Label>
                   <Input
                     id="manualNumber"
                     value={manualInvoiceNumber}
                     onChange={(e) => setManualInvoiceNumber(e.target.value)}
-                    placeholder="np. FAK/2024/001, INV-2024-W47-001, etc."
+                    placeholder={t('invoiceForm.invoiceNumberPlaceholder')}
                     className="font-mono text-lg"
                   />
                   <p className="text-xs text-muted-foreground">
-                    Możesz użyć dowolnego formatu, np. FAK/2024/001 lub INV-W{weekNumber}-001
+                    {t('invoiceForm.manualNumberHint')}
                   </p>
                 </div>
               )}
@@ -375,15 +375,15 @@ export default function InvoiceForm({ onNavigate }: InvoiceFormProps) {
             {/* Informacje pomocnicze */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-3 pt-2">
               <div className="p-3 rounded-lg bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700">
-                <div className="text-xs text-muted-foreground mb-1">Rok / Year</div>
+                <div className="text-xs text-muted-foreground mb-1">{t('invoiceForm.year')}</div>
                 <div className="text-lg font-semibold">{invoiceBreakdown.year}</div>
               </div>
               <div className="p-3 rounded-lg bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700">
-                <div className="text-xs text-muted-foreground mb-1">Miesiąc / Month</div>
+                <div className="text-xs text-muted-foreground mb-1">{t('invoiceForm.monthLabel')}</div>
                 <div className="text-lg font-semibold">{invoiceBreakdown.month.toString().padStart(2, '0')}</div>
               </div>
               <div className="p-3 rounded-lg bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700">
-                <div className="text-xs text-muted-foreground mb-1">Tydzień / Week</div>
+                <div className="text-xs text-muted-foreground mb-1">{t('invoiceForm.weekLabel')}</div>
                 <div className="text-lg font-semibold">{weekNumber}</div>
               </div>
             </div>
