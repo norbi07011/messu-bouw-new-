@@ -263,7 +263,7 @@ export default function Documents() {
               className="gap-2"
             >
               <ArrowLeft className="h-4 w-4" />
-              Anuluj
+              {t('common.cancel')}
             </Button>
             <Button
               variant="outline"
@@ -278,7 +278,7 @@ export default function Documents() {
               className="bg-linear-to-r from-sky-500 to-blue-600 text-white gap-2"
             >
               <FloppyDisk className="h-4 w-4" />
-              Zapisz
+              {t('common.save')}
             </Button>
           </div>
         </div>
