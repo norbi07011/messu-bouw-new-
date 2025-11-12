@@ -302,23 +302,27 @@ Adres sieciowy: http://192.168.178.75:5002/
   const navItems = [
     { id: 'reports' as Page, icon: ChartBar, label: t('nav.reports') },
     { id: 'invoices' as Page, icon: FileText, label: t('nav.invoices') },
-    { id: 'documents' as Page, icon: File, label: '📄 Dokumenty' },
-    { id: 'appointments' as Page, icon: Calendar, label: '📅 Spotkania' },
+    { id: 'documents' as Page, icon: File, label: t('nav.documents') },
+    { id: 'appointments' as Page, icon: Calendar, label: t('nav.appointments') },
     { id: 'clients' as Page, icon: Users, label: t('nav.clients') },
     { id: 'products' as Page, icon: Package, label: t('nav.products') },
     { id: 'expenses' as Page, icon: Receipt, label: t('nav.expenses') },
     { id: 'kilometers' as Page, icon: Car, label: t('nav.kilometers') },
-    { id: 'timesheets' as Page, icon: Clock, label: 'Godziny Pracy' },
+    { id: 'timesheets' as Page, icon: Clock, label: t('nav.timesheets') },
     { id: 'btw' as Page, icon: ChartBar, label: t('nav.btw') },
     { id: 'settings' as Page, icon: Gear, label: t('nav.settings') },
   ];
 
   const renderPage = () => {
-    const handleNavigate = (page: string) => setCurrentPage(page as Page);
+    const handleNavigate = (page: string) => {
+      console.log('🔄 Nawigacja do:', page);
+      setCurrentPage(page as Page);
+    };
     
     // Sprawdź czy to edycja faktury
     if (currentPage.startsWith('invoices-edit-')) {
       const invoiceId = currentPage.replace('invoices-edit-', '');
+      console.log('✏️ Edycja faktury ID:', invoiceId);
       return <InvoiceForm onNavigate={handleNavigate} editInvoiceId={invoiceId} />;
     }
     
@@ -369,7 +373,7 @@ Adres sieciowy: http://192.168.178.75:5002/
                 </div>
                 <div>
                   <h2 className="text-xl font-bold text-gray-900 dark:text-white">MESSU BOUW</h2>
-                  <p className="text-xs text-gray-600 dark:text-gray-400">Invoice Management System</p>
+                  <p className="text-xs text-gray-600 dark:text-gray-400">{t('app.subtitle')}</p>
                 </div>
               </div>
               {/* Audio Toggle - moved from header */}

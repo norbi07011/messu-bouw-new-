@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { CompanyManager } from '@/components/CompanyManager';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { Upload, Image as ImageIcon, Plus, Copy, Printer } from '@phosphor-icons/react';
@@ -253,22 +254,35 @@ export default function Settings() {
         </div>
       </div>
 
-      <Tabs defaultValue="company" className="w-full">
+      <Tabs defaultValue="companies" className="w-full">
         <TabsList>
-          <TabsTrigger value="company">{t('settings.company')}</TabsTrigger>
-          <TabsTrigger value="preferences">{t('settings.preferences')}</TabsTrigger>
-          <TabsTrigger value="templates">Invoice Templates</TabsTrigger>
-          <TabsTrigger value="timesheet-templates">Timesheet Templates</TabsTrigger>
-          <TabsTrigger value="document-templates">📄 Szablony Dokumentów</TabsTrigger>
-          <TabsTrigger value="downloads">Downloads</TabsTrigger>
-          <TabsTrigger value="desktop">Desktop App</TabsTrigger>
+          <TabsTrigger value="companies">{t('settings.companies.title')}</TabsTrigger>
+          <TabsTrigger value="company">{t('settings.tabs.company')}</TabsTrigger>
+          <TabsTrigger value="preferences">{t('settings.tabs.preferences')}</TabsTrigger>
+          <TabsTrigger value="templates">{t('settings.tabs.templates')}</TabsTrigger>
+          <TabsTrigger value="timesheet-templates">{t('settings.tabs.timesheetTemplates')}</TabsTrigger>
+          <TabsTrigger value="document-templates">{t('settings.tabs.documentTemplates')}</TabsTrigger>
+          <TabsTrigger value="downloads">{t('settings.tabs.downloads')}</TabsTrigger>
+          <TabsTrigger value="desktop">{t('settings.tabs.desktop')}</TabsTrigger>
         </TabsList>
+
+        <TabsContent value="companies">
+          <Card>
+            <CardHeader>
+              <CardTitle>{t('settings.companies.title')}</CardTitle>
+              <CardDescription>{t('settings.companies.description')}</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <CompanyManager />
+            </CardContent>
+          </Card>
+        </TabsContent>
 
         <TabsContent value="company">
           <Card>
             <CardHeader>
               <CardTitle>{t('settings.company')}</CardTitle>
-              <CardDescription>Company information</CardDescription>
+              <CardDescription>{t('settings.companyDescription')}</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="space-y-4">
@@ -491,7 +505,7 @@ export default function Settings() {
           <Card>
             <CardHeader>
               <CardTitle>{t('settings.preferences')}</CardTitle>
-              <CardDescription>Application preferences and defaults</CardDescription>
+              <CardDescription>{t('settings.preferencesDescription')}</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="space-y-2">
@@ -528,10 +542,9 @@ export default function Settings() {
                       </svg>
                     </div>
                     <div>
-                      <h3 className="text-xl font-bold text-gray-900 mb-2">Edytor wizualny faktur</h3>
+                      <h3 className="text-xl font-bold text-gray-900 mb-2">{t('settings.templates.visual_editor')}</h3>
                       <p className="text-gray-700 max-w-2xl mx-auto">
-                        Twórz własne layouty faktur! Przeciągaj bloki (logo, dane klienta, tabela pozycji), 
-                        zmieniaj kolory, czcionki - podobnie jak w edytorze Timesheet Templates!
+                        {t('settings.templates.visual_editor_description')}
                       </p>
                     </div>
                     <button 
@@ -539,7 +552,7 @@ export default function Settings() {
                       className="px-6 py-3 bg-linear-to-r from-sky-500 to-blue-600 text-white rounded-lg hover:from-sky-600 hover:to-blue-700 transition-all flex items-center gap-2 font-semibold shadow-lg shadow-sky-200/50 mx-auto"
                     >
                       <Plus size={20} weight="bold" />
-                      Nowy szablon faktury
+                      {t('settings.templates.new_template')}
                     </button>
                   </div>
                 </CardContent>
@@ -596,7 +609,7 @@ export default function Settings() {
                             {template.style}
                           </span>
                           {template.config.showLogo && (
-                            <span className="px-2 py-1 bg-blue-100 text-blue-700 text-xs rounded">Logo</span>
+                            <span className="px-2 py-1 bg-blue-100 text-blue-700 text-xs rounded">{t('settings.templates.logo')}</span>
                           )}
                           {template.config.showQRCode && (
                             <span className="px-2 py-1 bg-green-100 text-green-700 text-xs rounded">QR</span>
@@ -845,22 +858,22 @@ export default function Settings() {
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-3 max-w-3xl mx-auto mb-6">
                       <div className="bg-white rounded-lg p-3 border-2 border-sky-200">
                         <div className="text-2xl mb-1">💼</div>
-                        <div className="text-xs font-semibold text-gray-800">Zatrudnienie</div>
+                        <div className="text-xs font-semibold text-gray-800">{t('settings.categories.employment')}</div>
                         <div className="text-xs text-gray-600">Umowy, CV</div>
                       </div>
                       <div className="bg-white rounded-lg p-3 border-2 border-sky-200">
                         <div className="text-2xl mb-1">🏛️</div>
                         <div className="text-xs font-semibold text-gray-800">Rząd/KVK</div>
-                        <div className="text-xs text-gray-600">Rejestracje</div>
+                        <div className="text-xs text-gray-600">{t('settings.categories.registrations')}</div>
                       </div>
                       <div className="bg-white rounded-lg p-3 border-2 border-sky-200">
                         <div className="text-2xl mb-1">💰</div>
-                        <div className="text-xs font-semibold text-gray-800">Podatki</div>
+                        <div className="text-xs font-semibold text-gray-800">{t('settings.categories.taxes')}</div>
                         <div className="text-xs text-gray-600">BTW, deklaracje</div>
                       </div>
                       <div className="bg-white rounded-lg p-3 border-2 border-sky-200">
                         <div className="text-2xl mb-1">📧</div>
-                        <div className="text-xs font-semibold text-gray-800">Biznes</div>
+                        <div className="text-xs font-semibold text-gray-800">{t('settings.categories.business')}</div>
                         <div className="text-xs text-gray-600">Oferty, listy</div>
                       </div>
                     </div>
@@ -942,9 +955,9 @@ export default function Settings() {
           <div className="space-y-6">
             <Card>
               <CardHeader>
-                <CardTitle>🚀 Pobierz MESSU BOUW</CardTitle>
+                <CardTitle>{t('settings.download.page_title')}</CardTitle>
                 <CardDescription>
-                  Wybierz platformę i pobierz aplikację na swoje urządzenie
+                  {t('settings.download.page_description')}
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-6">
@@ -959,10 +972,10 @@ export default function Settings() {
                     </div>
                     <div className="flex-1">
                       <h3 className="text-lg font-semibold text-black">
-                        💻 Windows Desktop App
+                        {t('settings.download.windows_title')}
                       </h3>
                       <p className="text-sm text-black mt-1">
-                        Pełna aplikacja z SQLite database, offline work, auto-backup
+                        {t('settings.download.windows_description')}
                       </p>
                       <div className="mt-4 flex space-x-3">
                         <Button
@@ -981,11 +994,11 @@ export default function Settings() {
                             )}`;
                             link.download = 'MESSU-BOUW-Installation-Guide.txt';
                             link.click();
-                            toast.success('Instrukcje pobrane! Zobacz plik tekstowy.');
+                            toast.success(t('settings.download.instructions_downloaded'));
                           }}
                           className="bg-linear-to-r from-sky-500 to-blue-600 hover:from-sky-600 hover:to-blue-700"
                         >
-                          📁 Download Source Code
+                          {t('settings.download.download_source')}
                         </Button>
                         
                         <Button
@@ -994,13 +1007,13 @@ export default function Settings() {
                           onClick={() => {
                             if (window.electronAPI?.build) {
                               window.electronAPI.build.createInstaller();
-                              toast.success('Tworzenie installer Windows...');
+                              toast.success(t('settings.download.creating_installer'));
                             } else {
-                              toast.error('Funkcja dostępna tylko w desktop app');
+                              toast.error(t('settings.download.desktop_mode_only'));
                             }
                           }}
                         >
-                          🔧 Build .exe Installer
+                          {t('settings.download.build_installer')}
                         </Button>
                       </div>
                     </div>
@@ -1017,22 +1030,22 @@ export default function Settings() {
                     </div>
                     <div className="flex-1">
                       <h3 className="text-lg font-semibold text-black">
-                        📱 Telefon / Tablet
+                        {t('settings.download.mobile_title')}
                       </h3>
                       <p className="text-sm text-black mt-1">
-                        Dostęp przez przeglądarkę, responsive design, localStorage
+                        {t('settings.download.mobile_description')}
                       </p>
                       
                       <div className="mt-3 p-3 bg-white/95 rounded border-l-4 border-blue-500">
                         <p className="text-sm font-medium text-blue-800">
-                          📡 Aktualny adres sieciowy:
+                          {t('settings.download.current_address')}
                         </p>
                         <div className="mt-2 space-y-1">
                           <code className="block text-xs bg-blue-50 p-2 rounded font-mono">
                             {networkUrl}
                           </code>
                           <p className="text-xs text-black">
-                            Skopiuj ten adres i wklej w przeglądarce telefonu (ta sama sieć Wi-Fi)
+                            {t('settings.download.copy_instruction')}
                           </p>
                         </div>
                       </div>
@@ -1043,15 +1056,15 @@ export default function Settings() {
                           onClick={async () => {
                             if (window.electronAPI?.copyToClipboard) {
                               await window.electronAPI.copyToClipboard(networkUrl);
-                              toast.success('Adres skopiowany! Wklej w przeglądarce telefonu.');
+                              toast.success(t('settings.download.address_copied'));
                             } else {
                               navigator.clipboard.writeText(networkUrl);
-                              toast.success('Adres skopiowany! Wklej w przeglądarce telefonu.');
+                              toast.success(t('settings.download.address_copied'));
                             }
                           }}
                           className="bg-linear-to-r from-sky-500 to-blue-600 hover:from-sky-600 hover:to-blue-700"
                         >
-                          📋 Skopiuj adres
+                          {t('settings.download.copy_address')}
                         </Button>
                         
                         <Button
@@ -1061,10 +1074,10 @@ export default function Settings() {
                             // Generate QR code URL
                             const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(networkUrl)}`;
                             window.open(qrUrl, '_blank');
-                            toast.success('QR kod otwarty - skanuj telefonem!');
+                            toast.success(t('settings.download.qr_opened'));
                           }}
                         >
-                          📱 Pokaż QR kod
+                          {t('settings.download.show_qr')}
                         </Button>
                       </div>
                     </div>
@@ -1172,7 +1185,7 @@ export default function Settings() {
                 </div>
 
                 <div className="space-y-3">
-                  <h4 className="text-sm font-medium">Build Desktop Installer</h4>
+                  <h4 className="text-sm font-medium">{t('settings.desktop.build_installer')}</h4>
                   <p className="text-sm text-muted-foreground">
                     Zbuduj installer dla Windows (.exe) który możesz zainstalować na dowolnym komputerze.
                   </p>
@@ -1212,7 +1225,7 @@ export default function Settings() {
                 </div>
 
                 <div className="space-y-3 pt-4 border-t">
-                  <h4 className="text-sm font-medium">Instrukcje instalacji na innym komputerze</h4>
+                  <h4 className="text-sm font-medium">{t('settings.desktop.installation_instructions')}</h4>
                   <div className="space-y-2 text-sm text-muted-foreground">
                     <p><strong>Opcja 1: Installer (.exe)</strong></p>
                     <ol className="list-decimal list-inside space-y-1 ml-4">

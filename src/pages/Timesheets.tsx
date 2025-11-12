@@ -12,7 +12,10 @@
  */
 
 import React, { useState, useRef } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useAudio } from '@/contexts/AudioContext';
+import { useTimesheets } from '@/hooks/useElectronDB';
+import { Timesheet, DayHours } from '@/types';
 import { 
   Printer, 
   Download, 
@@ -28,50 +31,6 @@ import {
 } from '@phosphor-icons/react';
 import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
-
-// ============================================
-// TYPY
-// ============================================
-
-interface DayHours {
-  date: string;          // YYYY-MM-DD
-  dayName: string;       // Poniedziałek, Wtorek...
-  startTime: string;     // HH:MM
-  endTime: string;       // HH:MM
-  breakMinutes: number;  // Przerwa w minutach
-  workedHours: number;   // Automatycznie wyliczone
-  notes: string;         // Uwagi do dnia
-}
-
-interface Timesheet {
-  id: string;
-  weekStartDate: string;    // Poniedziałek YYYY-MM-DD
-  weekEndDate: string;      // Niedziela YYYY-MM-DD
-  
-  // Pracownik
-  employeeName: string;
-  employeeAddress: string;
-  employeePhone: string;
-  
-  // Projekt / Budowa
-  projectName: string;
-  projectAddress: string;
-  projectClient: string;
-  
-  // Stawka
-  hourlyRate: number;       // € za godzinę
-  
-  // Dni tygodnia
-  days: DayHours[];
-  
-  // Wyliczenia
-  totalHours: number;
-  totalAmount: number;
-  
-  // Metadata
-  createdAt: string;
-  updatedAt: string;
-}
 
 // ============================================
 // POMOCNICZE FUNKCJE
@@ -131,6 +90,7 @@ function formatDatePL(dateStr: string): string {
 // ============================================
 
 export function Timesheets() {
+  const { t, i18n } = useTranslation();
   const { isMuted } = useAudio();
   const [timesheets, setTimesheets] = useState<Timesheet[]>(() => {
     // Wczytaj zapisane karty pracy z localStorage przy starcie
@@ -492,13 +452,13 @@ export function Timesheets() {
               onClick={() => setCurrentSheet(null)}
               className="px-4 py-2 bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition-all"
             >
-              Anuluj
+              {t('timesheets.cancel')}
             </button>
             <button
               onClick={saveTimesheet}
               className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-all shadow-lg"
             >
-              Zapisz
+              {t('timesheets.save')}
             </button>
             <button
               onClick={() => setShowPreview(true)}
@@ -765,7 +725,7 @@ export function Timesheets() {
             
             {/* Wersja do wydruku */}
             <div ref={printRef} className="p-8 bg-white">
-              <PrintableTimesheet timesheet={currentSheet} />
+              <PrintableTimesheet timesheet={currentSheet} t={t} />
             </div>
           </div>
         </div>
@@ -778,7 +738,7 @@ export function Timesheets() {
 // KOMPONENT DRUKOWALNY
 // ============================================
 
-function PrintableTimesheet({ timesheet }: { timesheet: Timesheet }) {
+function PrintableTimesheet({ timesheet, t }: { timesheet: Timesheet; t: any }) {
   return (
     <div className="max-w-4xl mx-auto font-sans">
       {/* Header z logo */}
@@ -789,7 +749,7 @@ function PrintableTimesheet({ timesheet }: { timesheet: Timesheet }) {
             alt="MESSU BOUW" 
             className="h-16 w-auto mb-2"
           />
-          <h1 className="text-3xl font-bold text-slate-900">KARTA CZASU PRACY</h1>
+          <h1 className="text-3xl font-bold text-slate-900">{t('timesheets.timecard')}</h1>
           <p className="text-slate-600 mt-1">
             Tydzień: {formatDatePL(timesheet.weekStartDate)} - {formatDatePL(timesheet.weekEndDate)}
           </p>
@@ -803,7 +763,7 @@ function PrintableTimesheet({ timesheet }: { timesheet: Timesheet }) {
       {/* Dane pracownika i projektu */}
       <div className="grid grid-cols-2 gap-8 mb-8">
         <div>
-          <h2 className="text-sm font-bold text-slate-500 uppercase mb-3">Pracownik</h2>
+          <h2 className="text-sm font-bold text-slate-500 uppercase mb-3">{t('timesheets.employee')}</h2>
           <div className="space-y-2 text-slate-900">
             <p className="font-bold text-lg">{timesheet.employeeName}</p>
             <p className="text-sm">{timesheet.employeeAddress}</p>
@@ -826,13 +786,13 @@ function PrintableTimesheet({ timesheet }: { timesheet: Timesheet }) {
         <thead>
           <tr className="bg-sky-100 border-b-2 border-sky-500">
             <th className="text-left py-3 px-3 text-xs font-bold text-slate-700 uppercase">Dzień</th>
-            <th className="text-left py-3 px-3 text-xs font-bold text-slate-700 uppercase">Data</th>
-            <th className="text-center py-3 px-3 text-xs font-bold text-slate-700 uppercase">Start</th>
-            <th className="text-center py-3 px-3 text-xs font-bold text-slate-700 uppercase">Koniec</th>
-            <th className="text-center py-3 px-3 text-xs font-bold text-slate-700 uppercase">Przerwa</th>
-            <th className="text-right py-3 px-3 text-xs font-bold text-slate-700 uppercase">Godziny</th>
+            <th className="text-left py-3 px-3 text-xs font-bold text-slate-700 uppercase">{t('timesheets.dateLabel')}</th>
+            <th className="text-center py-3 px-3 text-xs font-bold text-slate-700 uppercase">{t('timesheets.startTime')}</th>
+            <th className="text-center py-3 px-3 text-xs font-bold text-slate-700 uppercase">{t('timesheets.endTime')}</th>
+            <th className="text-center py-3 px-3 text-xs font-bold text-slate-700 uppercase">{t('timesheets.break')}</th>
+            <th className="text-right py-3 px-3 text-xs font-bold text-slate-700 uppercase">{t('timesheets.hoursWorked')}</th>
             <th className="text-right py-3 px-3 text-xs font-bold text-slate-700 uppercase">Kwota (€)</th>
-            <th className="text-left py-3 px-3 text-xs font-bold text-slate-700 uppercase">Uwagi</th>
+            <th className="text-left py-3 px-3 text-xs font-bold text-slate-700 uppercase">{t('timesheets.notes')}</th>
           </tr>
         </thead>
         <tbody>
@@ -873,7 +833,7 @@ function PrintableTimesheet({ timesheet }: { timesheet: Timesheet }) {
             <p className="text-3xl font-bold text-sky-600 font-mono">{timesheet.totalHours.toFixed(2)}h</p>
           </div>
           <div>
-            <p className="text-sm text-slate-600 uppercase mb-1">Stawka godzinowa</p>
+            <p className="text-sm text-slate-600 uppercase mb-1">{t('timesheets.hourlyRate')}</p>
             <p className="text-3xl font-bold text-slate-900 font-mono">€{timesheet.hourlyRate.toFixed(2)}</p>
           </div>
           <div>

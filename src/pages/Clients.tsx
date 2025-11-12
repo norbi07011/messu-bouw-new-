@@ -314,7 +314,7 @@ export default function Clients() {
             <div className="flex items-center justify-between mb-6">
               <div>
                 <h2 className="text-2xl font-bold text-black">{t('clients.title')}</h2>
-                <p className="text-black">Wszyscy klienci w systemie</p>
+                <p className="text-black">{t('clients.allClients')}</p>
               </div>
               <div className="p-3 bg-blue-100 rounded-xl">
                 <Users className="text-blue-700" size={24} />
@@ -365,7 +365,7 @@ export default function Clients() {
                     <div className="font-bold text-white">{t('clients.country')}</div>
                     <div className="font-bold text-white">{t('clients.email')}</div>
                     <div className="font-bold text-white">{t('clients.phone')}</div>
-                    <div className="font-bold text-white">BTW/NIP</div>
+                    <div className="font-bold text-white">{t('clients.vatNumber')}</div>
                     <div className="font-bold text-white text-right">{t('clients.actions')}</div>
                   </div>
 

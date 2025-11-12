@@ -868,7 +868,7 @@ export default function KilometersPage() {
                     type="submit"
                     className="px-6 py-3 bg-linear-to-r from-green-500 to-emerald-600 text-white rounded-xl hover:from-green-600 hover:to-emerald-700 transition-all duration-300 transform hover:scale-105 font-medium shadow-lg"
                   >
-                    {editingEntry ? 'Zapisz zmiany' : 'Dodaj przejazd'}
+                    {editingEntry ? t('kilometers.saveChanges') : t('kilometers.addTrip')}
                   </button>
                   <button 
                     type="button"
@@ -878,7 +878,7 @@ export default function KilometersPage() {
                     }}
                     className="px-6 py-3 bg-gray-200 text-black rounded-xl hover:bg-gray-300 transition-all duration-300 font-medium"
                   >
-                    Anuluj
+                    {t('kilometers.cancel')}
                   </button>
                 </div>
               </form>

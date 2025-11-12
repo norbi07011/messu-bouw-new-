@@ -1139,11 +1139,11 @@ export default function Appointments() {
 
             <DialogFooter>
               <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>
-                Anuluj
+                {t('appointments.cancel')}
               </Button>
               <Button type="submit">
                 <Check className="w-4 h-4 mr-2" />
-                {editingAppointment ? 'Zapisz zmiany' : 'Dodaj spotkanie'}
+                {editingAppointment ? t('appointments.saveChanges') : t('appointments.addAppointment')}
               </Button>
             </DialogFooter>
           </form>

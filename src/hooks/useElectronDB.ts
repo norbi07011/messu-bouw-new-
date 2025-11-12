@@ -583,6 +583,170 @@ export function useCompany() {
   };
 }
 
+// Hook dla zarządzania wieloma firmami
+export function useCompanies() {
+  const [companies, setCompanies] = useState<any[]>([]);
+  const [activeCompanyId, setActiveCompanyId] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  const fetchCompanies = useCallback(async () => {
+    setLoading(true);
+    try {
+      const stored = await getStorageItem('companies');
+      let companiesList = stored ? JSON.parse(stored) : [];
+
+      // MIGRACJA: Jeśli nie ma firm w 'companies', ale jest firma w 'company', migruj ją
+      if (companiesList.length === 0) {
+        const oldCompany = await getStorageItem('company');
+        if (oldCompany) {
+          const parsedCompany = JSON.parse(oldCompany);
+          const migratedCompany = {
+            ...parsedCompany,
+            id: parsedCompany.id || Date.now().toString(),
+            created_at: parsedCompany.created_at || new Date().toISOString(),
+            updated_at: parsedCompany.updated_at || new Date().toISOString()
+          };
+          companiesList = [migratedCompany];
+          await setStorageItem('companies', JSON.stringify(companiesList));
+          await setStorageItem('activeCompanyId', migratedCompany.id);
+          console.log('✅ Migracja: Firma przeniesiona z "company" do "companies"');
+        }
+      }
+
+      setCompanies(companiesList);
+
+      const activeId = await getStorageItem('activeCompanyId');
+      setActiveCompanyId(activeId);
+
+      // Jeśli nie ma aktywnej firmy, ale są firmy, ustaw pierwszą jako aktywną
+      if (!activeId && companiesList.length > 0) {
+        await setActiveCompany(companiesList[0].id);
+      }
+    } catch (error) {
+      console.error('Error fetching companies:', error);
+      setCompanies([]);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  const createCompany = useCallback(async (companyData: any) => {
+    try {
+      const newCompany = {
+        ...companyData,
+        id: Date.now().toString(),
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      };
+
+      const stored = await getStorageItem('companies');
+      const companiesList = stored ? JSON.parse(stored) : [];
+      const updated = [...companiesList, newCompany];
+      await setStorageItem('companies', JSON.stringify(updated));
+
+      // Jeśli to pierwsza firma, ustaw ją jako aktywną
+      if (companiesList.length === 0) {
+        await setActiveCompany(newCompany.id);
+      }
+
+      await fetchCompanies();
+      return newCompany;
+    } catch (error) {
+      console.error('Error creating company:', error);
+      throw error;
+    }
+  }, [fetchCompanies]);
+
+  const updateCompany = useCallback(async (id: string, companyData: any) => {
+    try {
+      const stored = await getStorageItem('companies');
+      const companiesList = stored ? JSON.parse(stored) : [];
+      const updated = companiesList.map((comp: any) =>
+        comp.id === id ? { ...comp, ...companyData, updated_at: new Date().toISOString() } : comp
+      );
+      await setStorageItem('companies', JSON.stringify(updated));
+
+      // Jeśli aktualizowana firma jest aktywną, zaktualizuj też 'company'
+      if (id === activeCompanyId) {
+        const updatedCompany = updated.find((c: any) => c.id === id);
+        await setStorageItem('company', JSON.stringify(updatedCompany));
+      }
+
+      await fetchCompanies();
+      return companyData;
+    } catch (error) {
+      console.error('Error updating company:', error);
+      throw error;
+    }
+  }, [activeCompanyId, fetchCompanies]);
+
+  const deleteCompany = useCallback(async (id: string) => {
+    try {
+      const stored = await getStorageItem('companies');
+      const companiesList = stored ? JSON.parse(stored) : [];
+      const updated = companiesList.filter((comp: any) => comp.id !== id);
+      await setStorageItem('companies', JSON.stringify(updated));
+
+      // Jeśli usuwana firma była aktywna, ustaw nową aktywną
+      if (id === activeCompanyId) {
+        if (updated.length > 0) {
+          await setActiveCompany(updated[0].id);
+        } else {
+          await setStorageItem('activeCompanyId', '');
+          await setStorageItem('company', '');
+          setActiveCompanyId(null);
+        }
+      }
+
+      await fetchCompanies();
+      return true;
+    } catch (error) {
+      console.error('Error deleting company:', error);
+      throw error;
+    }
+  }, [activeCompanyId, fetchCompanies]);
+
+  const setActiveCompany = useCallback(async (id: string) => {
+    try {
+      const stored = await getStorageItem('companies');
+      const companiesList = stored ? JSON.parse(stored) : [];
+      const company = companiesList.find((c: any) => c.id === id);
+
+      if (company) {
+        await setStorageItem('activeCompanyId', id);
+        await setStorageItem('company', JSON.stringify(company));
+        setActiveCompanyId(id);
+        
+        // Odśwież również useCompany hook
+        window.dispatchEvent(new Event('storage'));
+      }
+    } catch (error) {
+      console.error('Error setting active company:', error);
+      throw error;
+    }
+  }, []);
+
+  const getActiveCompany = useCallback(() => {
+    return companies.find((c: any) => c.id === activeCompanyId) || null;
+  }, [companies, activeCompanyId]);
+
+  useEffect(() => {
+    fetchCompanies();
+  }, [fetchCompanies]);
+
+  return {
+    companies,
+    activeCompanyId,
+    activeCompany: getActiveCompany(),
+    loading,
+    createCompany,
+    updateCompany,
+    deleteCompany,
+    setActiveCompany,
+    refetch: fetchCompanies
+  };
+}
+
 // Hook dla file system operacji
 export function useFileSystem() {
   const savePDF = useCallback(async (filename: string, buffer: ArrayBuffer) => {
@@ -1046,6 +1210,87 @@ export function useAppointments() {
     updateAppointment,
     deleteAppointment,
     refetch: fetchAppointments
+  };
+}
+
+// ============================================
+// TIMESHEETS (KARTY PRACY)
+// ============================================
+export function useTimesheets() {
+  const [timesheets, setTimesheets] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  const fetchTimesheets = useCallback(async () => {
+    setLoading(true);
+    try {
+      const data = await getStorageItem('timesheets');
+      if (data) {
+        const parsed = JSON.parse(data);
+        setTimesheets(Array.isArray(parsed) ? parsed : []);
+      } else {
+        setTimesheets([]);
+      }
+    } catch (error) {
+      console.error('Error fetching timesheets:', error);
+      setTimesheets([]);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  const createTimesheet = useCallback(async (timesheet: any) => {
+    try {
+      const data = await getStorageItem('timesheets');
+      const existing = data ? JSON.parse(data) : [];
+      const updated = [...existing, timesheet];
+      await setStorageItem('timesheets', JSON.stringify(updated));
+      setTimesheets(updated);
+      return timesheet;
+    } catch (error) {
+      console.error('Error creating timesheet:', error);
+      throw error;
+    }
+  }, []);
+
+  const updateTimesheet = useCallback(async (id: string, updates: any) => {
+    try {
+      const data = await getStorageItem('timesheets');
+      const existing = data ? JSON.parse(data) : [];
+      const updated = existing.map((t: any) =>
+        t.id === id ? { ...t, ...updates, updatedAt: new Date().toISOString() } : t
+      );
+      await setStorageItem('timesheets', JSON.stringify(updated));
+      setTimesheets(updated);
+    } catch (error) {
+      console.error('Error updating timesheet:', error);
+      throw error;
+    }
+  }, []);
+
+  const deleteTimesheet = useCallback(async (id: string) => {
+    try {
+      const data = await getStorageItem('timesheets');
+      const existing = data ? JSON.parse(data) : [];
+      const updated = existing.filter((t: any) => t.id !== id);
+      await setStorageItem('timesheets', JSON.stringify(updated));
+      setTimesheets(updated);
+    } catch (error) {
+      console.error('Error deleting timesheet:', error);
+      throw error;
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchTimesheets();
+  }, [fetchTimesheets]);
+
+  return {
+    timesheets,
+    loading,
+    createTimesheet,
+    updateTimesheet,
+    deleteTimesheet,
+    refetch: fetchTimesheets
   };
 }
 

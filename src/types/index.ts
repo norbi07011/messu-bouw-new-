@@ -174,3 +174,45 @@ export interface Appointment {
   created_at: string;
   updated_at: string;
 }
+
+// Timesheet (Karta pracy / Godziny pracy)
+export interface DayHours {
+  date: string;          // YYYY-MM-DD
+  dayName: string;       // Poniedziałek, Wtorek...
+  startTime: string;     // HH:MM
+  endTime: string;       // HH:MM
+  breakMinutes: number;  // Przerwa w minutach
+  workedHours: number;   // Automatycznie wyliczone
+  notes: string;         // Uwagi do dnia
+}
+
+export interface Timesheet {
+  id: string;
+  weekStartDate: string;    // Poniedziałek YYYY-MM-DD
+  weekEndDate: string;      // Niedziela YYYY-MM-DD
+  
+  // Pracownik
+  employeeName: string;
+  employeeAddress: string;
+  employeePhone: string;
+  
+  // Projekt / Budowa
+  projectName: string;
+  projectAddress: string;
+  projectClient: string;
+  
+  // Stawka
+  hourlyRate: number;       // € za godzinę
+  
+  // Dni tygodnia
+  days: DayHours[];
+  
+  // Wyliczenia
+  totalHours: number;
+  totalAmount: number;
+  
+  // Metadata
+  createdAt: string;
+  updatedAt: string;
+}
+
