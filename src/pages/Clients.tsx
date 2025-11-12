@@ -505,7 +505,7 @@ export default function Clients() {
               )}
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="client_type">{t('clients.clientType')} *</Label>
                 <Select
@@ -559,7 +559,7 @@ export default function Clients() {
               />
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="email">{t('clients.email')}</Label>
                 <Input
@@ -596,7 +596,7 @@ export default function Clients() {
             )}
 
             {formData.country === 'NL' && (
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="kvk_number">{t('clients.kvkNumber')} (KVK)</Label>
                   <div className="flex gap-2">

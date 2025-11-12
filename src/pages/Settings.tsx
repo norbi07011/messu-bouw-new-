@@ -10,7 +10,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { CompanyManager } from '@/components/CompanyManager';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
-import { Upload, Image as ImageIcon, Plus, Copy, Printer } from '@phosphor-icons/react';
+import { Upload, Image as ImageIcon, Plus, Copy, Printer, Download } from '@phosphor-icons/react';
 import { toast } from 'sonner';
 import { Company, Language, Invoice, Client } from '@/types';
 import { InvoiceTemplateSelector } from '@/components/InvoiceTemplateSelector';
@@ -19,6 +19,7 @@ import { TimesheetTemplateEditor } from '@/components/TimeTracking/TimesheetTemp
 import { TemplateLibraryModal } from '@/components/TimeTracking/TemplateLibraryModal';
 import DocumentTemplateEditor from '@/components/Documents/DocumentTemplateEditor';
 import InvoiceTemplateEditor from '@/components/InvoiceTemplateEditor.tsx';
+import { CSVImport } from '@/components/CSVImport';
 import { PEZET_WEEKBRIEF_TEMPLATE, DEFAULT_TEMPLATES } from '@/components/TimeTracking/Weekbrief/defaultTemplates';
 import { getTemplateById, defaultTemplates } from '@/lib/invoice-templates';
 import { cn } from '@/lib/utils';
@@ -259,6 +260,8 @@ export default function Settings() {
           <TabsTrigger value="companies">{t('settings.companies.title')}</TabsTrigger>
           <TabsTrigger value="company">{t('settings.tabs.company')}</TabsTrigger>
           <TabsTrigger value="preferences">{t('settings.tabs.preferences')}</TabsTrigger>
+          <TabsTrigger value="backup">💾 Backup & Restore</TabsTrigger>
+          <TabsTrigger value="csv-import">📊 CSV Import</TabsTrigger>
           <TabsTrigger value="templates">{t('settings.tabs.templates')}</TabsTrigger>
           <TabsTrigger value="timesheet-templates">{t('settings.tabs.timesheetTemplates')}</TabsTrigger>
           <TabsTrigger value="document-templates">{t('settings.tabs.documentTemplates')}</TabsTrigger>
@@ -507,7 +510,8 @@ export default function Settings() {
               <CardTitle>{t('settings.preferences')}</CardTitle>
               <CardDescription>{t('settings.preferencesDescription')}</CardDescription>
             </CardHeader>
-            <CardContent className="space-y-4">
+            <CardContent className="space-y-6">
+              {/* Language */}
               <div className="space-y-2">
                 <Label htmlFor="language">{t('settings.language')}</Label>
                 <Select value={i18n.language} onValueChange={(value) => handleLanguageChange(value as Language)}>
@@ -515,14 +519,285 @@ export default function Settings() {
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="pl">Polski (PL)</SelectItem>
-                    <SelectItem value="nl">Nederlands (NL)</SelectItem>
-                    <SelectItem value="en">English (EN)</SelectItem>
+                    <SelectItem value="pl">🇵🇱 Polski (PL)</SelectItem>
+                    <SelectItem value="nl">🇳🇱 Nederlands (NL)</SelectItem>
+                    <SelectItem value="en">🇬🇧 English (EN)</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Date Format */}
+              <div className="space-y-2">
+                <Label htmlFor="dateFormat">Format daty</Label>
+                <Select 
+                  value={localStorage.getItem('dateFormat') || 'DD-MM-YYYY'}
+                  onValueChange={(value) => {
+                    localStorage.setItem('dateFormat', value);
+                    toast.success('Format daty zapisany');
+                  }}
+                >
+                  <SelectTrigger id="dateFormat">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="DD-MM-YYYY">DD-MM-YYYY (31-12-2025)</SelectItem>
+                    <SelectItem value="MM/DD/YYYY">MM/DD/YYYY (12/31/2025)</SelectItem>
+                    <SelectItem value="YYYY-MM-DD">YYYY-MM-DD (2025-12-31)</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Decimal Separator */}
+              <div className="space-y-2">
+                <Label htmlFor="decimalSeparator">Separator dziesiętny</Label>
+                <Select 
+                  value={localStorage.getItem('decimalSeparator') || 'comma'}
+                  onValueChange={(value) => {
+                    localStorage.setItem('decimalSeparator', value);
+                    toast.success('Separator zapisany');
+                  }}
+                >
+                  <SelectTrigger id="decimalSeparator">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="comma">Przecinek (1.234,56)</SelectItem>
+                    <SelectItem value="period">Kropka (1,234.56)</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Timezone */}
+              <div className="space-y-2">
+                <Label htmlFor="timezone">Strefa czasowa</Label>
+                <Select 
+                  value={localStorage.getItem('timezone') || 'Europe/Amsterdam'}
+                  onValueChange={(value) => {
+                    localStorage.setItem('timezone', value);
+                    toast.success('Strefa czasowa zapisana');
+                  }}
+                >
+                  <SelectTrigger id="timezone">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Europe/Amsterdam">🇳🇱 Europe/Amsterdam (CET/CEST)</SelectItem>
+                    <SelectItem value="Europe/Warsaw">🇵🇱 Europe/Warsaw (CET/CEST)</SelectItem>
+                    <SelectItem value="Europe/London">🇬🇧 Europe/London (GMT/BST)</SelectItem>
+                    <SelectItem value="America/New_York">🇺🇸 America/New_York (EST/EDT)</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Default Currency */}
+              <div className="space-y-2">
+                <Label htmlFor="defaultCurrency">Domyślna waluta</Label>
+                <Select 
+                  value={localStorage.getItem('defaultCurrency') || 'EUR'}
+                  onValueChange={(value) => {
+                    localStorage.setItem('defaultCurrency', value);
+                    toast.success('Waluta zapisana');
+                  }}
+                >
+                  <SelectTrigger id="defaultCurrency">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="EUR">€ Euro (EUR)</SelectItem>
+                    <SelectItem value="PLN">zł Złoty Polski (PLN)</SelectItem>
+                    <SelectItem value="USD">$ US Dollar (USD)</SelectItem>
+                    <SelectItem value="GBP">£ British Pound (GBP)</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
             </CardContent>
           </Card>
+        </TabsContent>
+
+        <TabsContent value="backup">
+          <div className="space-y-6">
+            {/* Export Backup */}
+            <Card>
+              <CardHeader>
+                <CardTitle>📤 Export danych</CardTitle>
+                <CardDescription>Pobierz kopię zapasową wszystkich danych jako plik JSON</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <Button
+                  onClick={() => {
+                    const data = {
+                      exportDate: new Date().toISOString(),
+                      version: '1.0',
+                      invoices: JSON.parse(localStorage.getItem('invoices') || '[]'),
+                      clients: JSON.parse(localStorage.getItem('clients') || '[]'),
+                      products: JSON.parse(localStorage.getItem('products') || '[]'),
+                      companies: JSON.parse(localStorage.getItem('companies') || '[]'),
+                      timesheets: JSON.parse(localStorage.getItem('timesheets') || '[]'),
+                      appointments: JSON.parse(localStorage.getItem('appointments') || '[]'),
+                      expenses: JSON.parse(localStorage.getItem('expenses') || '[]'),
+                      kilometers: JSON.parse(localStorage.getItem('kilometers') || '[]'),
+                      settings: {
+                        language: i18n.language,
+                        dateFormat: localStorage.getItem('dateFormat'),
+                        decimalSeparator: localStorage.getItem('decimalSeparator'),
+                        timezone: localStorage.getItem('timezone'),
+                        defaultCurrency: localStorage.getItem('defaultCurrency'),
+                      }
+                    };
+                    
+                    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+                    const url = URL.createObjectURL(blob);
+                    const link = document.createElement('a');
+                    const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, -5);
+                    link.href = url;
+                    link.download = `messu-bouw-backup-${timestamp}.json`;
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                    URL.revokeObjectURL(url);
+                    
+                    toast.success('Backup pobrany!', {
+                      description: `Plik: messu-bouw-backup-${timestamp}.json`
+                    });
+                  }}
+                  className="w-full md:w-auto"
+                >
+                  <Download className="mr-2" size={20} />
+                  Pobierz backup
+                </Button>
+                <p className="text-sm text-gray-600">
+                  Ostatni backup: {localStorage.getItem('lastBackupDate') || 'Nigdy'}
+                </p>
+              </CardContent>
+            </Card>
+
+            {/* Import/Restore */}
+            <Card>
+              <CardHeader>
+                <CardTitle>📥 Import danych</CardTitle>
+                <CardDescription>Wczytaj dane z pliku backup JSON</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <Input
+                  type="file"
+                  accept=".json"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (!file) return;
+                    
+                    const reader = new FileReader();
+                    reader.onload = (event) => {
+                      try {
+                        const data = JSON.parse(event.target?.result as string);
+                        
+                        // Validate structure
+                        if (!data.version || !data.exportDate) {
+                          toast.error('Nieprawidłowy format pliku backup');
+                          return;
+                        }
+                        
+                        // Ask user: merge or replace
+                        const shouldReplace = confirm(
+                          '⚠️ UWAGA!\n\n' +
+                          'Wybierz sposób importu:\n\n' +
+                          '✅ OK = ZASTĄP wszystkie dane (usuń obecne)\n' +
+                          '❌ ANULUJ = POŁĄCZ z obecnymi danymi\n\n' +
+                          `Backup z: ${new Date(data.exportDate).toLocaleString()}`
+                        );
+                        
+                        if (shouldReplace) {
+                          // Replace mode
+                          localStorage.setItem('invoices', JSON.stringify(data.invoices || []));
+                          localStorage.setItem('clients', JSON.stringify(data.clients || []));
+                          localStorage.setItem('products', JSON.stringify(data.products || []));
+                          localStorage.setItem('companies', JSON.stringify(data.companies || []));
+                          localStorage.setItem('timesheets', JSON.stringify(data.timesheets || []));
+                          localStorage.setItem('appointments', JSON.stringify(data.appointments || []));
+                          localStorage.setItem('expenses', JSON.stringify(data.expenses || []));
+                          localStorage.setItem('kilometers', JSON.stringify(data.kilometers || []));
+                          
+                          toast.success('✅ Dane zastąpione!', {
+                            description: 'Wszystkie dane zostały zastąpione danymi z backupu. Odśwież stronę.'
+                          });
+                        } else {
+                          // Merge mode
+                          const mergeArrays = (existing: any[], imported: any[]) => {
+                            const existingIds = new Set(existing.map(item => item.id));
+                            const newItems = imported.filter(item => !existingIds.has(item.id));
+                            return [...existing, ...newItems];
+                          };
+                          
+                          localStorage.setItem('invoices', JSON.stringify(mergeArrays(
+                            JSON.parse(localStorage.getItem('invoices') || '[]'),
+                            data.invoices || []
+                          )));
+                          localStorage.setItem('clients', JSON.stringify(mergeArrays(
+                            JSON.parse(localStorage.getItem('clients') || '[]'),
+                            data.clients || []
+                          )));
+                          localStorage.setItem('products', JSON.stringify(mergeArrays(
+                            JSON.parse(localStorage.getItem('products') || '[]'),
+                            data.products || []
+                          )));
+                          localStorage.setItem('companies', JSON.stringify(mergeArrays(
+                            JSON.parse(localStorage.getItem('companies') || '[]'),
+                            data.companies || []
+                          )));
+                          localStorage.setItem('timesheets', JSON.stringify(mergeArrays(
+                            JSON.parse(localStorage.getItem('timesheets') || '[]'),
+                            data.timesheets || []
+                          )));
+                          localStorage.setItem('appointments', JSON.stringify(mergeArrays(
+                            JSON.parse(localStorage.getItem('appointments') || '[]'),
+                            data.appointments || []
+                          )));
+                          localStorage.setItem('expenses', JSON.stringify(mergeArrays(
+                            JSON.parse(localStorage.getItem('expenses') || '[]'),
+                            data.expenses || []
+                          )));
+                          localStorage.setItem('kilometers', JSON.stringify(mergeArrays(
+                            JSON.parse(localStorage.getItem('kilometers') || '[]'),
+                            data.kilometers || []
+                          )));
+                          
+                          toast.success('✅ Dane połączone!', {
+                            description: 'Nowe dane dodane bez duplikatów. Odśwież stronę.'
+                          });
+                        }
+                        
+                        // Restore settings
+                        if (data.settings) {
+                          if (data.settings.dateFormat) localStorage.setItem('dateFormat', data.settings.dateFormat);
+                          if (data.settings.decimalSeparator) localStorage.setItem('decimalSeparator', data.settings.decimalSeparator);
+                          if (data.settings.timezone) localStorage.setItem('timezone', data.settings.timezone);
+                          if (data.settings.defaultCurrency) localStorage.setItem('defaultCurrency', data.settings.defaultCurrency);
+                        }
+                        
+                        localStorage.setItem('lastBackupDate', new Date().toISOString());
+                        
+                        // Refresh after 2s
+                        setTimeout(() => window.location.reload(), 2000);
+                        
+                      } catch (error) {
+                        console.error('Import error:', error);
+                        toast.error('Błąd importu', {
+                          description: 'Nie udało się wczytać pliku. Sprawdź czy to prawidłowy plik backup.'
+                        });
+                      }
+                    };
+                    reader.readAsText(file);
+                  }}
+                />
+                <p className="text-sm text-yellow-700 bg-yellow-50 p-3 rounded-lg border border-yellow-200">
+                  ⚠️ Import danych połączy lub zastąpi obecne dane. Zalecamy najpierw pobrać backup obecnych danych.
+                </p>
+              </CardContent>
+            </Card>
+          </div>
+        </TabsContent>
+
+        <TabsContent value="csv-import">
+          <CSVImport />
         </TabsContent>
 
         <TabsContent value="templates">

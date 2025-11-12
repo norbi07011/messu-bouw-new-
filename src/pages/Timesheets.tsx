@@ -27,7 +27,8 @@ import {
   User,
   Clock,
   CurrencyEur,
-  FilePdf
+  FilePdf,
+  ShareNetwork
 } from '@phosphor-icons/react';
 import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
@@ -92,13 +93,10 @@ function formatDatePL(dateStr: string): string {
 export function Timesheets() {
   const { t, i18n } = useTranslation();
   const { isMuted } = useAudio();
-  const [timesheets, setTimesheets] = useState<Timesheet[]>(() => {
-    // Wczytaj zapisane karty pracy z localStorage przy starcie
-    const saved = localStorage.getItem('timesheets');
-    return saved ? JSON.parse(saved) : [];
-  });
+  const { timesheets, loading, createTimesheet, updateTimesheet, deleteTimesheet } = useTimesheets();
   const [currentSheet, setCurrentSheet] = useState<Timesheet | null>(null);
   const [showPreview, setShowPreview] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
   
   const printRef = useRef<HTMLDivElement>(null);
   
@@ -233,24 +231,55 @@ export function Timesheets() {
       const imgData = canvas.toDataURL('image/png');
       pdf.addImage(imgData, 'PNG', 0, 0, imgWidth, imgHeight);
       
-      // Zapisz PDF
       const filename = `Karta_Pracy_${currentSheet.employeeName || 'MESSU_BOUW'}_${formatDatePL(currentSheet.weekStartDate)}.pdf`;
-      pdf.save(filename);
       
       // Usuń komunikat ładowania
       document.body.removeChild(loadingToast);
+
+      // Spróbuj użyć Web Share API (działa na mobile)
+      if (navigator.share && navigator.canShare) {
+        try {
+          const pdfBlob = pdf.output('blob');
+          const file = new File([pdfBlob], filename, { type: 'application/pdf' });
+          
+          if (navigator.canShare({ files: [file] })) {
+            await navigator.share({
+              files: [file],
+              title: 'Karta Pracy - MESSU BOUW',
+              text: `Karta pracy: ${currentSheet.employeeName}`
+            });
+            showSuccessToast('✅ PDF udostępniony!');
+            return;
+          }
+        } catch (err: any) {
+          if (err.name !== 'AbortError') {
+            console.log('Web Share API error:', err);
+          }
+          // Jeśli użytkownik anulował lub błąd, kontynuuj do pobierania
+        }
+      }
       
-      // Pokaż sukces
-      const successToast = document.createElement('div');
-      successToast.textContent = '✅ PDF pobrany!';
-      successToast.style.cssText = 'position:fixed;top:20px;left:50%;transform:translateX(-50%);background:#10b981;color:white;padding:12px 24px;border-radius:8px;z-index:9999;font-weight:600;';
-      document.body.appendChild(successToast);
-      setTimeout(() => document.body.removeChild(successToast), 3000);
+      // Fallback: standardowe pobieranie (działa wszędzie)
+      pdf.save(filename);
+      showSuccessToast('✅ PDF pobrany!');
       
     } catch (error) {
       console.error('Błąd generowania PDF:', error);
       alert('❌ Nie udało się wygenerować PDF. Spróbuj ponownie.');
     }
+  };
+
+  // Helper do pokazywania toastów sukcesu
+  const showSuccessToast = (message: string) => {
+    const successToast = document.createElement('div');
+    successToast.textContent = message;
+    successToast.style.cssText = 'position:fixed;top:20px;left:50%;transform:translateX(-50%);background:#10b981;color:white;padding:12px 24px;border-radius:8px;z-index:9999;font-weight:600;';
+    document.body.appendChild(successToast);
+    setTimeout(() => {
+      if (document.body.contains(successToast)) {
+        document.body.removeChild(successToast);
+      }
+    }, 3000);
   };
 
   // Nowa karta pracy
@@ -315,28 +344,28 @@ export function Timesheets() {
   };
 
   // Zapisz kartę pracy
-  const saveTimesheet = () => {
+  const saveTimesheet = async () => {
     if (!currentSheet) return;
     
-    const existingIndex = timesheets.findIndex(t => t.id === currentSheet.id);
-    let updatedTimesheets: Timesheet[];
-    
-    if (existingIndex >= 0) {
-      // Aktualizuj istniejącą kartę
-      updatedTimesheets = [...timesheets];
-      updatedTimesheets[existingIndex] = currentSheet;
-    } else {
-      // Dodaj nową kartę
-      updatedTimesheets = [...timesheets, currentSheet];
+    setIsSaving(true);
+    try {
+      const existingIndex = timesheets.findIndex(t => t.id === currentSheet.id);
+      
+      if (existingIndex >= 0) {
+        // Aktualizuj istniejącą kartę
+        await updateTimesheet(currentSheet.id, currentSheet);
+        alert('✅ Karta pracy zaktualizowana!');
+      } else {
+        // Dodaj nową kartę
+        await createTimesheet(currentSheet);
+        alert('✅ Karta pracy zapisana!');
+      }
+    } catch (error) {
+      console.error('Error saving timesheet:', error);
+      alert('❌ Błąd podczas zapisywania karty pracy');
+    } finally {
+      setIsSaving(false);
     }
-    
-    // Zaktualizuj state
-    setTimesheets(updatedTimesheets);
-    
-    // Zapisz do localStorage
-    localStorage.setItem('timesheets', JSON.stringify(updatedTimesheets));
-    
-    alert('✅ Karta pracy zapisana!');
   };
 
   // ============================================
@@ -451,18 +480,21 @@ export function Timesheets() {
             <button
               onClick={() => setCurrentSheet(null)}
               className="px-4 py-2 bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition-all"
+              disabled={isSaving}
             >
               Anuluj
             </button>
             <button
               onClick={saveTimesheet}
-              className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-all shadow-lg"
+              className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-all shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
+              disabled={isSaving}
             >
-              Zapisz
+              {isSaving ? 'Zapisywanie...' : 'Zapisz'}
             </button>
             <button
               onClick={() => setShowPreview(true)}
               className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-all shadow-lg"
+              disabled={isSaving}
             >
               <Printer size={18} className="inline mr-2" />
               Podgląd Wydruku

@@ -3,11 +3,12 @@ import { Toaster } from 'sonner';
 import './i18n';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
-import { FileText, Users, Package, ChartBar, Gear, Download, DeviceMobile, Car, Receipt, Clock, File, Calendar } from '@phosphor-icons/react';
+import { FileText, Users, Package, ChartBar, Gear, Download, DeviceMobile, Car, Receipt, Clock, File, Calendar, List, X } from '@phosphor-icons/react';
 import { toast } from 'sonner';
 import { ThemeProvider } from '@/contexts/ThemeContext';
 import { AudioProvider } from '@/contexts/AudioContext';
 import { AudioToggle } from '@/components/AudioToggle';
+import { InstallPWA } from '@/components/InstallPWA';
 import { Timesheets } from '@/pages/Timesheets';
 import Invoices from './pages/Invoices';
 import InvoiceForm from './pages/InvoiceForm';
@@ -36,6 +37,7 @@ function App() {
 function AppContent() {
   const { t } = useTranslation();
   const [currentPage, setCurrentPage] = useState<Page>('reports');
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   // Download handlers
   const handleDownloadDesktop = async () => {
@@ -358,8 +360,24 @@ Adres sieciowy: http://192.168.178.75:5002/
 
   return (
     <div className="min-h-screen bg-linear-to-br from-sky-50 via-blue-50 to-sky-100 dark:bg-black transition-colors duration-300">
-      <div className="flex gap-6 p-6">
-        <aside className="premium-card w-72 h-fit bg-white/95 dark:bg-black/95 backdrop-blur-md sticky top-6 self-start">
+      {/* Mobile Menu Button */}
+      <button
+        onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+        className="lg:hidden fixed top-4 left-4 z-50 p-3 bg-white dark:bg-gray-900 rounded-xl shadow-lg border-2 border-sky-400 dark:border-blue-500"
+        aria-label="Toggle menu"
+      >
+        {isMobileMenuOpen ? <X size={24} className="text-gray-900 dark:text-white" /> : <List size={24} className="text-gray-900 dark:text-white" />}
+      </button>
+
+      <div className="flex gap-3 lg:gap-6 p-3 lg:p-6">
+        {/* Sidebar - Desktop always visible, Mobile overlay */}
+        <aside className={`
+          premium-card w-72 h-fit bg-white/95 dark:bg-black/95 backdrop-blur-md
+          lg:sticky lg:top-6 lg:self-start
+          fixed top-0 left-0 bottom-0 z-40 overflow-y-auto
+          transition-transform duration-300 ease-in-out
+          ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
+        `}>
           {/* Logo Section with Audio Toggle */}
           <div className="p-6 border-b-2 border-sky-300 dark:border-blue-500">
             <div className="flex items-center justify-between mb-4">
@@ -393,7 +411,10 @@ Adres sieciowy: http://192.168.178.75:5002/
                       ? 'bg-linear-to-r from-sky-500 to-blue-600 dark:from-blue-500 dark:to-blue-600 text-white shadow-[0_4px_20px_rgba(59,130,246,0.5)] dark:shadow-[0_8px_30px_rgba(59,130,246,0.8),0_4px_15px_rgba(59,130,246,0.6)]' 
                       : 'text-gray-700 dark:text-gray-300 bg-white/50 dark:bg-black/50 hover:bg-sky-50 dark:hover:bg-black/70 hover:text-sky-700 dark:hover:text-blue-400'
                   }`}
-                  onClick={() => setCurrentPage(item.id)}
+                  onClick={() => {
+                    setCurrentPage(item.id);
+                    setIsMobileMenuOpen(false); // Close mobile menu on navigation
+                  }}
                 >
                   <Icon size={20} />
                   {item.label}
@@ -403,12 +424,21 @@ Adres sieciowy: http://192.168.178.75:5002/
           </nav>
         </aside>
 
-        <main className="flex-1">
+        {/* Mobile Overlay */}
+        {isMobileMenuOpen && (
+          <div 
+            className="lg:hidden fixed inset-0 bg-black/50 z-30"
+            onClick={() => setIsMobileMenuOpen(false)}
+          />
+        )}
+
+        <main className="flex-1 lg:ml-0 ml-0">
           {renderPage()}
         </main>
       </div>
 
       <Toaster position="top-right" />
+      <InstallPWA />
     </div>
   );
 }
