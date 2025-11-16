@@ -67,13 +67,13 @@ export function CompanyManager() {
     if (file) {
       // Sprawdź czy to obraz
       if (!file.type.startsWith('image/')) {
-        toast.error('Proszę wybrać plik obrazu');
+        toast.error(t('settings.companies.selectImage'));
         return;
       }
 
       // Sprawdź rozmiar (max 2MB)
       if (file.size > 2 * 1024 * 1024) {
-        toast.error('Plik jest za duży. Maksymalny rozmiar to 2MB');
+        toast.error(t('settings.companies.fileTooLarge'));
         return;
       }
 
@@ -186,7 +186,7 @@ export function CompanyManager() {
 
                 {/* Logo Upload */}
                 <div className="col-span-2">
-                  <Label>Logo firmy</Label>
+                  <Label>{t('settings.companies.logo')}</Label>
                   <div className="mt-2 space-y-3">
                     {logoPreview ? (
                       <div className="relative inline-block">
@@ -219,10 +219,10 @@ export function CompanyManager() {
                           className="cursor-pointer inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-10 px-4 py-2"
                         >
                           <Upload className="mr-2 h-4 w-4" />
-                          Dodaj logo
+                          {t('settings.companies.addLogo')}
                         </Label>
                         <span className="text-xs text-muted-foreground">
-                          PNG, JPG, SVG (max 2MB)
+                          {t('settings.companies.logoFormats')}
                         </span>
                       </div>
                     )}
