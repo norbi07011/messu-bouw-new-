@@ -3,7 +3,7 @@ import { Toaster } from 'sonner';
 import './i18n';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
-import { FileText, Users, Package, ChartBar, Gear, Download, DeviceMobile, Car, Receipt, Clock, File, Calendar, List, X } from '@phosphor-icons/react';
+import { FileText, Users, Package, ChartBar, Gear, Download, DeviceMobile, Car, Receipt, Clock, File, Calendar, List, X, Buildings } from '@phosphor-icons/react';
 import { toast } from 'sonner';
 import { ThemeProvider } from '@/contexts/ThemeContext';
 import { AudioProvider } from '@/contexts/AudioContext';
@@ -21,8 +21,9 @@ import { BTWAangifte } from './pages/BTWAangifte';
 import Expenses from './pages/Expenses';
 import Documents from './pages/Documents.tsx';
 import Appointments from './pages/Appointments';
+import Companies from './pages/Companies';
 
-type Page = 'reports' | 'invoices' | 'invoices-new' | 'clients' | 'products' | 'expenses' | 'kilometers' | 'timesheets' | 'btw' | 'settings' | 'documents' | 'appointments';
+type Page = 'reports' | 'invoices' | 'invoices-new' | 'clients' | 'products' | 'expenses' | 'kilometers' | 'timesheets' | 'btw' | 'settings' | 'documents' | 'appointments' | 'companies';
 
 function App() {
   return (
@@ -307,6 +308,7 @@ Adres sieciowy: http://192.168.178.75:5002/
     { id: 'documents' as Page, icon: File, label: t('nav.documents') },
     { id: 'appointments' as Page, icon: Calendar, label: t('nav.appointments') },
     { id: 'clients' as Page, icon: Users, label: t('nav.clients') },
+    { id: 'companies' as Page, icon: Buildings, label: 'Bedrijven' },
     { id: 'products' as Page, icon: Package, label: t('nav.products') },
     { id: 'expenses' as Page, icon: Receipt, label: t('nav.expenses') },
     { id: 'kilometers' as Page, icon: Car, label: t('nav.kilometers') },
@@ -341,6 +343,8 @@ Adres sieciowy: http://192.168.178.75:5002/
         return <Appointments />;
       case 'clients':
         return <Clients />;
+      case 'companies':
+        return <Companies />;
       case 'products':
         return <Products />;
       case 'expenses':
