@@ -1,19 +1,19 @@
 import type { Employer, WeekbriefTemplate, WeekbriefColumn } from '../../../types/weekbrief';
 
-// PEZET - Domyślny pracodawca (wzór 1:1 z obrazka)
+// Manager System - Domyślny pracodawca
 export const PEZET_EMPLOYER: Employer = {
   id: 'pezet-default',
-  name: 'PEZET',
-  logo: '/pezet-logo.png',
+  name: 'Manager System',
+  logo: '/logo.png',
   contactInfo: {
-    name: 'PEZET',
+    name: 'Manager System',
     address: 'Adres firmy',
     postalCode: '1234 AB',
     city: 'Amsterdam',
     country: 'Nederland',
     phone: '+31 6 12345678',
-    email: 'info@pezet.nl',
-    website: 'www.pezet.nl',
+    email: 'info@messubouw.nl',
+    website: 'www.messubouw.nl',
     kvkNumber: '12345678',
     btwNumber: 'NL123456789B01'
   },
@@ -101,10 +101,10 @@ const PEZET_COLUMNS: WeekbriefColumn[] = [
   }
 ];
 
-// PEZET - Szablon Weekbrief (wzór 1:1)
+// Manager System - Szablon Weekbrief
 export const PEZET_WEEKBRIEF_TEMPLATE: WeekbriefTemplate = {
   id: 'pezet-weekbrief-template',
-  name: 'PEZET Weekbrief',
+  name: 'Manager System Weekbrief',
   employerId: 'pezet-default',
   isPublic: false,
   config: {

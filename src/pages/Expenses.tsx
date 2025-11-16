@@ -849,7 +849,7 @@ export default function Expenses() {
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           <Card className="bg-white/95 backdrop-blur-md border border-blue-200 shadow-xl">
             <CardHeader className="pb-2">
-              <CardTitle className="text-sm text-black">Suma Netto</CardTitle>
+              <CardTitle className="text-sm text-black">{t('expenses.totalNet')}</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold text-blue-700">
@@ -867,25 +867,25 @@ export default function Expenses() {
               <div className="text-2xl font-bold text-blue-700">
                 {formatCurrency(totals.vat, i18n.language)}
               </div>
-              <div className="text-xs text-black mt-1">Suma VAT</div>
+              <div className="text-xs text-black mt-1">{t('expenses.totalVat')}</div>
             </CardContent>
           </Card>
 
           <Card className="bg-white/95 backdrop-blur-md border border-blue-200 shadow-xl">
             <CardHeader className="pb-2">
-              <CardTitle className="text-sm text-black">Do odliczenia</CardTitle>
+              <CardTitle className="text-sm text-black">{t('expenses.totalVatDeductible')}</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold text-blue-700">
                 {formatCurrency(totals.deductibleVat, i18n.language)}
               </div>
-              <div className="text-xs text-black mt-1">VAT do odliczenia</div>
+              <div className="text-xs text-black mt-1">{t('expenses.vatDeductible')}</div>
             </CardContent>
           </Card>
 
           <Card className="bg-white/95 backdrop-blur-md border border-blue-200 shadow-xl">
             <CardHeader className="pb-2">
-              <CardTitle className="text-sm text-black">Suma Brutto</CardTitle>
+              <CardTitle className="text-sm text-black">{t('expenses.totalGross')}</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold text-blue-700">
@@ -939,10 +939,10 @@ export default function Expenses() {
                       <TableHead>Dostawca</TableHead>
                       <TableHead>Opis</TableHead>
                       <TableHead className="text-center">📎</TableHead>
-                      <TableHead className="text-right">Netto</TableHead>
+                      <TableHead className="text-right">{t('expenses.net')}</TableHead>
                       <TableHead className="text-right">VAT</TableHead>
-                      <TableHead className="text-right">Brutto</TableHead>
-                      <TableHead className="text-right">Akcje</TableHead>
+                      <TableHead className="text-right">{t('expenses.gross')}</TableHead>
+                      <TableHead className="text-right">{t('expenses.actions')}</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>

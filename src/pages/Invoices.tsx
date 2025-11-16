@@ -12,7 +12,7 @@ import { Plus, FileText, DownloadSimple, CheckCircle, FilePdf, FileCsv, FileCode
 import { Invoice, Client, Company } from '@/types';
 import { formatCurrency, formatDate } from '@/lib/invoice-utils';
 import { toast } from 'sonner';
-import { generateInvoicePDF } from '@/lib/pdf-generator';
+import { generateInvoicePDF, generateMobilePDF } from '@/lib/pdf-generator';
 import { exportToCSV, exportToJSON, exportToExcel, exportToXML } from '@/lib/export-utils';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 
@@ -49,17 +49,30 @@ export default function Invoices({ onNavigate }: InvoicesProps) {
   const handleGeneratePDF = async (invoice: Invoice) => {
     const client = clients?.find(c => c.id === invoice.client_id);
     if (!client || !company) {
-      toast.error('Missing data');
+      toast.error(t('invoices.missingData'));
       return;
     }
 
     try {
-      await generateInvoicePDF(invoice, company, client, invoice.lines, i18n.language, selectedTemplateId || 'classic');
-      toast.success('🖨️ Faktura otwarta! Kliknij "Zapisz jako PDF" w nowym oknie lub użyj Ctrl+P i wybierz "Zapisz jako PDF"', {
-        duration: 6000,
-      });
+      // Wykryj czy to urządzenie mobilne
+      const isMobileDevice = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+      
+      if (isMobileDevice) {
+        // Na telefonie użyj html2canvas + jsPDF
+        toast.loading('📱 Generowanie PDF dla telefonu...', { duration: 2000 });
+        await generateMobilePDF(invoice, company, client, invoice.lines, i18n.language, selectedTemplateId || 'classic');
+        toast.success('✅ PDF zapisany! Sprawdź folder Pobrane', {
+          duration: 6000,
+        });
+      } else {
+        // Na desktopie użyj window.print()
+        await generateInvoicePDF(invoice, company, client, invoice.lines, i18n.language, selectedTemplateId || 'classic');
+        toast.success(t('invoices.pdfOpened'), {
+          duration: 6000,
+        });
+      }
     } catch (error) {
-      toast.error('Failed to generate PDF');
+      toast.error('❌ Błąd generowania PDF. Spróbuj ponownie.');
       console.error(error);
     }
   };
@@ -67,14 +80,14 @@ export default function Invoices({ onNavigate }: InvoicesProps) {
   const handleExportCSV = async (invoice: Invoice) => {
     const client = clients?.find(c => c.id === invoice.client_id);
     if (!client || !company) {
-      toast.error('Missing data');
+      toast.error(t('invoices.missingData'));
       return;
     }
     try {
       await exportToCSV(invoice, company, client);
-      toast.success('CSV exported');
+      toast.success(t('invoices.csvExported'));
     } catch (error) {
-      toast.error('Failed to export CSV');
+      toast.error(t('invoices.csvError'));
       console.error(error);
     }
   };
@@ -82,14 +95,14 @@ export default function Invoices({ onNavigate }: InvoicesProps) {
   const handleExportJSON = async (invoice: Invoice) => {
     const client = clients?.find(c => c.id === invoice.client_id);
     if (!client || !company) {
-      toast.error('Missing data');
+      toast.error(t('invoices.missingData'));
       return;
     }
     try {
       await exportToJSON(invoice, company, client);
-      toast.success('JSON exported');
+      toast.success(t('invoices.jsonExported'));
     } catch (error) {
-      toast.error('Failed to export JSON');
+      toast.error(t('invoices.jsonError'));
       console.error(error);
     }
   };
@@ -97,14 +110,14 @@ export default function Invoices({ onNavigate }: InvoicesProps) {
   const handleExportExcel = async (invoice: Invoice) => {
     const client = clients?.find(c => c.id === invoice.client_id);
     if (!client || !company) {
-      toast.error('Missing data');
+      toast.error(t('invoices.missingData'));
       return;
     }
     try {
       await exportToExcel(invoice, company, client);
-      toast.success('Excel exported');
+      toast.success(t('invoices.excelExported'));
     } catch (error) {
-      toast.error('Failed to export Excel');
+      toast.error(t('invoices.excelError'));
       console.error(error);
     }
   };
@@ -112,14 +125,14 @@ export default function Invoices({ onNavigate }: InvoicesProps) {
   const handleExportXML = async (invoice: Invoice) => {
     const client = clients?.find(c => c.id === invoice.client_id);
     if (!client || !company) {
-      toast.error('Missing data');
+      toast.error(t('invoices.missingData'));
       return;
     }
     try {
       await exportToXML(invoice, company, client);
-      toast.success('XML exported');
+      toast.success(t('invoices.xmlExported'));
     } catch (error) {
-      toast.error('Failed to export XML');
+      toast.error(t('invoices.xmlError'));
       console.error(error);
     }
   };
@@ -133,17 +146,17 @@ export default function Invoices({ onNavigate }: InvoicesProps) {
           status: 'paid' as const, 
           updated_at: new Date().toISOString() 
         });
-        toast.success('Invoice marked as paid');
+        toast.success(t('invoices.markedPaid'));
       }
     } catch (error) {
-      toast.error('Błąd podczas oznaczania jako opłacone');
+      toast.error(t('invoices.markPaidError'));
       console.error('Mark paid error:', error);
     }
   };
 
   const handleDeleteInvoice = async (invoiceId: string) => {
     // Potwierdzenie przed usunięciem
-    const confirmed = window.confirm('Czy na pewno chcesz usunąć tę fakturę? Ta operacja jest nieodwracalna.');
+    const confirmed = window.confirm(t('invoices.confirmDeletePrompt') + '? ' + t('common.irreversible'));
     
     if (!confirmed) {
       return;
@@ -153,20 +166,23 @@ export default function Invoices({ onNavigate }: InvoicesProps) {
       console.log('Attempting to delete invoice:', invoiceId);
       if (!deleteInvoice) {
         console.error('deleteInvoice function is not available');
-        toast.error('Funkcja usuwania nie jest dostępna');
+        toast.error(t('invoices.deleteNotAvailable'));
         return;
       }
       await deleteInvoice(invoiceId);
       console.log('Invoice deleted successfully');
-      toast.success(t('invoices.deleteSuccess') || 'Faktura została usunięta');
+      toast.success(t('invoices.deleteSuccess'));
     } catch (error) {
       console.error('Delete error:', error);
-      toast.error(t('invoices.deleteError') || 'Błąd podczas usuwania faktury: ' + (error as Error).message);
+      toast.error(t('invoices.deleteError') + ': ' + (error as Error).message);
     }
   };
 
   const handleEditInvoice = (invoiceId: string) => {
-    onNavigate(`invoices-edit-${invoiceId}`);
+    console.log('📝 Kliknięto Edit dla faktury:', invoiceId);
+    const navigationPath = `invoices-edit-${invoiceId}`;
+    console.log('📍 Ścieżka nawigacji:', navigationPath);
+    onNavigate(navigationPath);
   };
 
   const handleViewInvoice = (invoice: Invoice) => {
@@ -192,12 +208,12 @@ export default function Invoices({ onNavigate }: InvoicesProps) {
   const handleSendEmail = async (invoice: Invoice) => {
     const client = clients?.find(c => c.id === invoice.client_id);
     if (!client || !company) {
-      toast.error('Brak danych klienta lub firmy');
+      toast.error(t('invoices.missingClientData'));
       return;
     }
 
     if (!client.email) {
-      toast.error('Klient nie ma adresu email');
+      toast.error(t('invoices.noClientEmail'));
       return;
     }
 
@@ -356,7 +372,7 @@ ${company?.name || ''}`;
             <div className="flex items-center justify-between mb-6">
               <div>
                 <h2 className="text-2xl font-bold text-black">{t('invoices.title')}</h2>
-                <p className="text-black">Wszystkie faktury w systemie</p>
+                <p className="text-black">{t('invoices.allInvoices')}</p>
               </div>
               <div className="p-3 bg-sky-100 rounded-xl">
                 <FileText className="text-blue-700" size={24} />
@@ -391,7 +407,7 @@ ${company?.name || ''}`;
                             {/* Nagłówek karty */}
                             <div className="flex justify-between items-start mb-3">
                               <div className="flex-1">
-                                <p className="text-xs text-black mb-1">Numer faktury</p>
+                                <p className="text-xs text-black mb-1">{t('invoices.invoiceNumberLabel')}</p>
                                 <p className="font-mono font-bold text-lg text-black">{invoice.invoice_number}</p>
                               </div>
                               <div>
@@ -401,25 +417,25 @@ ${company?.name || ''}`;
 
                             {/* Klient */}
                             <div className="mb-3">
-                              <p className="text-xs text-black mb-1">Klient</p>
-                              <p className="font-medium text-gray-800">{client?.name || 'Nieznany'}</p>
+                              <p className="text-xs text-black mb-1">{t('invoices.clientLabel')}</p>
+                              <p className="font-medium text-gray-800">{client?.name || t('invoices.unknown')}</p>
                             </div>
 
                             {/* Daty w dwóch kolumnach */}
                             <div className="grid grid-cols-2 gap-3 mb-3">
                               <div>
-                                <p className="text-xs text-black mb-1">Data wystawienia</p>
+                                <p className="text-xs text-black mb-1">{t('invoices.issueDateLabel')}</p>
                                 <p className="text-sm font-mono text-black">{formatDate(invoice.issue_date, i18n.language)}</p>
                               </div>
                               <div>
-                                <p className="text-xs text-black mb-1">Termin płatności</p>
+                                <p className="text-xs text-black mb-1">{t('invoices.dueDate')}</p>
                                 <p className="text-sm font-mono text-black">{formatDate(invoice.due_date, i18n.language)}</p>
                               </div>
                             </div>
 
                             {/* Kwota - wyróżniona */}
                             <div className="bg-sky-50 rounded-lg p-3 mb-3">
-                              <p className="text-xs text-sky-600 mb-1">Kwota brutto</p>
+                              <p className="text-xs text-sky-600 mb-1">{t('invoices.grossAmount')}</p>
                               <p className="text-2xl font-bold text-sky-700">{formatCurrency(invoice.total_gross, i18n.language)}</p>
                             </div>
 
@@ -435,20 +451,20 @@ ${company?.name || ''}`;
                                     className="w-full"
                                   >
                                     <Eye className="mr-2 pointer-events-none" size={16} />
-                                    Podgląd
+                                    {t('invoices.preview')}
                                   </Button>
                                 </DialogTrigger>
                                 <DialogContent className="max-w-[95vw] max-h-[85vh] overflow-y-auto">
                                   <DialogHeader className="flex items-start justify-between">
                                     <div>
-                                      <DialogTitle>Faktura {invoice.invoice_number}</DialogTitle>
+                                      <DialogTitle>{t('invoices.invoice')} {invoice.invoice_number}</DialogTitle>
                                       <DialogDescription>{client?.name}</DialogDescription>
                                     </div>
                                     <div className="flex items-center gap-2">
-                                      <button onClick={handleViewPrev} className="p-1 rounded hover:bg-gray-100" title="Poprzednia">
+                                      <button onClick={handleViewPrev} className="p-1 rounded hover:bg-gray-100" title={t('invoices.previous')}>
                                         <ArrowLeft size={18} />
                                       </button>
-                                      <button onClick={handleViewNext} className="p-1 rounded hover:bg-gray-100" title="Następna">
+                                      <button onClick={handleViewNext} className="p-1 rounded hover:bg-gray-100" title={t('invoices.next')}>
                                         <ArrowRight size={18} />
                                       </button>
                                     </div>
@@ -457,16 +473,16 @@ ${company?.name || ''}`;
                                     <div className="space-y-4 text-sm">
                                       <div className="grid grid-cols-2 gap-3">
                                         <div>
-                                          <p className="font-semibold text-black">Data wystawienia</p>
+                                          <p className="font-semibold text-black">{t('invoices.issueDateLabel')}</p>
                                           <p>{formatDate(viewInvoice.issue_date, i18n.language)}</p>
                                         </div>
                                         <div>
-                                          <p className="font-semibold text-black">Termin płatności</p>
+                                          <p className="font-semibold text-black">{t('invoices.dueDate')}</p>
                                           <p>{formatDate(viewInvoice.due_date, i18n.language)}</p>
                                         </div>
                                       </div>
                                       <div>
-                                        <p className="font-semibold text-black mb-2">Pozycje</p>
+                                        <p className="font-semibold text-black mb-2">{t('invoices.items')}</p>
                                         <div className="space-y-2">
                                           {viewInvoice.lines.map((line, idx) => (
                                             <div key={idx} className="bg-gray-50 p-2 rounded">
@@ -480,7 +496,7 @@ ${company?.name || ''}`;
                                       </div>
                                       <div className="border-t pt-3">
                                         <div className="flex justify-between font-bold text-lg">
-                                          <span>Razem brutto:</span>
+                                          <span>{t('invoices.totalLabel')}:</span>
                                           <span>{formatCurrency(viewInvoice.total_gross, i18n.language)}</span>
                                         </div>
                                       </div>
@@ -492,7 +508,7 @@ ${company?.name || ''}`;
                                 <button
                                   onClick={() => handleSendWhatsApp(invoice)}
                                   className="p-2 bg-sky-100 hover:bg-sky-200 rounded-xl transition-colors duration-200"
-                                  title="Wyślij WhatsApp"
+                                  title={t('invoices.sendWhatsApp')}
                                 >
                                   <WhatsappLogo className="text-blue-700 pointer-events-none" size={18} />
                                 </button>
@@ -502,26 +518,26 @@ ${company?.name || ''}`;
                                 <DropdownMenuTrigger asChild>
                                   <Button variant="outline" size="sm" className="w-full">
                                     <DotsThree className="mr-2 pointer-events-none" size={20} weight="bold" />
-                                    Więcej
+                                    {t('invoices.more')}
                                   </Button>
                                 </DropdownMenuTrigger>
                                 <DropdownMenuContent align="end" className="w-48">
                                   <DropdownMenuItem onClick={() => handleEditInvoice(invoice.id)}>
                                     <PencilSimple className="mr-2 pointer-events-none" size={16} />
-                                    Edytuj
+                                    {t('common.edit')}
                                   </DropdownMenuItem>
                                   <DropdownMenuItem onClick={() => handleGeneratePDF(invoice)}>
                                     <FilePdf className="mr-2 pointer-events-none" size={16} />
-                                    Pobierz PDF
+                                    {t('invoices.downloadPDF')}
                                   </DropdownMenuItem>
                                   <DropdownMenuItem onClick={() => handleSendEmail(invoice)}>
                                     <EnvelopeSimple className="mr-2 pointer-events-none" size={16} />
-                                    Wyślij email
+                                    {t('invoices.sendEmail')}
                                   </DropdownMenuItem>
                                   <DropdownMenuSeparator />
                                   <DropdownMenuItem onClick={() => handleMarkPaid(invoice)}>
                                     <CheckCircle className="mr-2 pointer-events-none" size={16} />
-                                    Oznacz jako opłacone
+                                    {t('invoices.markPaid')}
                                   </DropdownMenuItem>
                                   <DropdownMenuSeparator />
                                   <DropdownMenuItem 
@@ -529,7 +545,7 @@ ${company?.name || ''}`;
                                     className="text-red-600 focus:text-red-600"
                                   >
                                     <Trash className="mr-2 pointer-events-none" size={16} />
-                                    Usuń
+                                    {t('common.delete')}
                                   </DropdownMenuItem>
                                 </DropdownMenuContent>
                               </DropdownMenu>
@@ -566,7 +582,7 @@ ${company?.name || ''}`;
                           <div className="absolute inset-0 bg-linear-to-r from-blue-500/5 to-blue-500/5 group-hover:from-blue-500/10 group-hover:to-blue-500/10 transition-all duration-300"></div>
                           <div className="relative grid grid-cols-7 gap-4 items-center">
                             <div className="font-mono font-bold text-black">{invoice.invoice_number}</div>
-                            <div className="font-medium text-black">{client?.name || 'Unknown'}</div>
+                            <div className="font-medium text-black">{client?.name || t('invoices.unknown')}</div>
                             <div className="font-mono text-sm text-black">{formatDate(invoice.issue_date, i18n.language)}</div>
                             <div className="font-mono text-sm text-black">{formatDate(invoice.due_date, i18n.language)}</div>
                             <div className="text-right font-mono font-bold text-black">{formatCurrency(invoice.total_gross, i18n.language)}</div>
@@ -579,44 +595,44 @@ ${company?.name || ''}`;
                                     <button 
                                       onClick={() => handleViewInvoice(invoice)}
                                       className="p-2 bg-sky-100 hover:bg-sky-200 rounded-xl transition-colors duration-200"
-                                      title="Podgląd faktury"
+                                      title={t('invoices.viewInvoice')}
                                     >
                                       <Eye className="text-blue-600 pointer-events-none" size={18} />
                                     </button>
                                   </DialogTrigger>
                                   <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
                                     <DialogHeader>
-                                      <DialogTitle>Podgląd faktury {invoice.invoice_number}</DialogTitle>
+                                      <DialogTitle>{t('invoices.viewInvoice')} {invoice.invoice_number}</DialogTitle>
                                       <DialogDescription>
-                                        Szczegóły faktury dla {client?.name}
+                                        {t('invoices.invoiceDetails')} {client?.name}
                                       </DialogDescription>
                                     </DialogHeader>
                                     <div className="space-y-4">
                                       <div className="grid grid-cols-2 gap-4">
                                         <div>
-                                          <p className="text-sm font-semibold text-black">Data wystawienia</p>
+                                          <p className="text-sm font-semibold text-black">{t('invoices.issueDateLabel')}</p>
                                           <p className="text-lg">{formatDate(invoice.issue_date, i18n.language)}</p>
                                         </div>
                                         <div>
-                                          <p className="text-sm font-semibold text-black">Termin płatności</p>
+                                          <p className="text-sm font-semibold text-black">{t('invoices.dueDate')}</p>
                                           <p className="text-lg">{formatDate(invoice.due_date, i18n.language)}</p>
                                         </div>
                                       </div>
                                       <div>
-                                        <p className="text-sm font-semibold text-black">Klient</p>
+                                        <p className="text-sm font-semibold text-black">{t('invoices.clientLabel')}</p>
                                         <p className="text-lg">{client?.name}</p>
                                         <p className="text-sm text-black">{client?.email}</p>
                                       </div>
                                       <div>
-                                        <p className="text-sm font-semibold text-black mb-2">Pozycje</p>
+                                        <p className="text-sm font-semibold text-black mb-2">{t('invoices.items')}</p>
                                         <div className="border rounded-lg overflow-hidden">
                                           <table className="w-full text-sm">
                                             <thead className="bg-gray-50">
                                               <tr>
-                                                <th className="px-4 py-2 text-left">Opis</th>
-                                                <th className="px-4 py-2 text-right">Ilość</th>
-                                                <th className="px-4 py-2 text-right">Cena</th>
-                                                <th className="px-4 py-2 text-right">Suma</th>
+                                                <th className="px-4 py-2 text-left">{t('invoices.itemDescription')}</th>
+                                                <th className="px-4 py-2 text-right">{t('invoices.quantity')}</th>
+                                                <th className="px-4 py-2 text-right">{t('invoices.price')}</th>
+                                                <th className="px-4 py-2 text-right">{t('invoices.sum')}</th>
                                               </tr>
                                             </thead>
                                             <tbody>
@@ -633,7 +649,7 @@ ${company?.name || ''}`;
                                         </div>
                                       </div>
                                       <div className="flex justify-between items-center pt-4 border-t">
-                                        <p className="text-lg font-semibold">Suma brutto</p>
+                                        <p className="text-lg font-semibold">{t('invoices.totalGross')}</p>
                                         <p className="text-2xl font-bold text-sky-600">{formatCurrency(invoice.total_gross, i18n.language)}</p>
                                       </div>
                                     </div>
@@ -644,7 +660,7 @@ ${company?.name || ''}`;
                                 <button
                                   onClick={() => handleSendWhatsApp(invoice)}
                                   className="p-2 bg-sky-100 hover:bg-sky-200 rounded-xl transition-colors duration-200"
-                                  title="Wyślij WhatsApp"
+                                  title={t('invoices.sendWhatsApp')}
                                 >
                                   <WhatsappLogo className="text-blue-700 pointer-events-none" size={18} />
                                 </button>
@@ -653,7 +669,7 @@ ${company?.name || ''}`;
                                 <button 
                                   onClick={() => handleSendEmail(invoice)}
                                   className="p-2 bg-sky-100 hover:bg-sky-200 rounded-xl transition-colors duration-200"
-                                  title="Wyślij email"
+                                  title={t('invoices.sendEmail')}
                                 >
                                   <EnvelopeSimple className="text-blue-700 pointer-events-none" size={18} />
                                 </button>
@@ -662,7 +678,7 @@ ${company?.name || ''}`;
                                 <button 
                                   onClick={() => handleEditInvoice(invoice.id)}
                                   className="p-2 bg-sky-100 hover:bg-sky-200 rounded-xl transition-colors duration-200"
-                                  title="Edytuj fakturę"
+                                  title={t('invoices.editInvoice')}
                                 >
                                   <PencilSimple className="text-blue-700 pointer-events-none" size={18} />
                                 </button>
@@ -672,7 +688,7 @@ ${company?.name || ''}`;
                                   <DropdownMenuTrigger asChild>
                                     <button 
                                       className="p-2 bg-sky-100 hover:bg-sky-200 rounded-xl transition-colors duration-200"
-                                      title="Pobierz fakturę (PDF/HTML/Excel)"
+                                      title={t('invoices.downloadInvoice')}
                                     >
                                       <DownloadSimple className="text-blue-700 pointer-events-none" size={18} />
                                     </button>
@@ -680,24 +696,24 @@ ${company?.name || ''}`;
                                   <DropdownMenuContent align="end" className="bg-white/95 backdrop-blur-sm border border-white/30">
                                     <DropdownMenuItem onClick={() => handleGeneratePDF(invoice)}>
                                       <FilePdf className="mr-2" size={16} />
-                                      Download PDF/HTML
+                                      {t('invoices.downloadPDFHTML')}
                                     </DropdownMenuItem>
                                     <DropdownMenuItem onClick={() => handleExportExcel(invoice)}>
                                       <FileXls className="mr-2" size={16} />
-                                      Download Excel
+                                      {t('invoices.downloadExcel')}
                                     </DropdownMenuItem>
                                     <DropdownMenuSeparator />
                                     <DropdownMenuItem onClick={() => handleExportCSV(invoice)}>
                                       <FileCsv className="mr-2" size={16} />
-                                      Export as CSV
+                                      {t('invoices.exportCSV')}
                                     </DropdownMenuItem>
                                     <DropdownMenuItem onClick={() => handleExportJSON(invoice)}>
                                       <FileCode className="mr-2" size={16} />
-                                      Export as JSON
+                                      {t('invoices.exportJSON')}
                                     </DropdownMenuItem>
                                     <DropdownMenuItem onClick={() => handleExportXML(invoice)}>
                                       <FileCode className="mr-2" size={16} />
-                                      Export as XML
+                                      {t('invoices.exportXML')}
                                     </DropdownMenuItem>
                                   </DropdownMenuContent>
                                 </DropdownMenu>
@@ -720,7 +736,7 @@ ${company?.name || ''}`;
                                     e.preventDefault();
                                     e.stopPropagation();
                                     
-                                    const confirmed = confirm(`Czy na pewno chcesz usunąć fakturę ${invoice.invoice_number}?`);
+                                    const confirmed = confirm(`${t('invoices.confirmDeletePrompt')} ${invoice.invoice_number}?`);
                                     if (!confirmed) return;
                                     
                                     try {

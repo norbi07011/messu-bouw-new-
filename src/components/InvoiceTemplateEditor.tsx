@@ -35,8 +35,10 @@ import {
   Image as ImageIcon
 } from '@phosphor-icons/react';
 import type { InvoiceBlock, InvoiceTemplateLayout, InvoiceBlockType } from '@/types/invoiceTemplate';
+import type { Invoice, Client, Company, InvoiceTemplate } from '@/types';
 import { useUndoRedo, useUndoRedoKeyboard } from '@/hooks/useUndoRedo';
 import { ColorPickerDual, FontControls, LogoControls, UndoRedoToolbar } from '@/components/shared/TemplateEditor';
+import { InvoiceTemplatePreview } from './InvoiceTemplatePreview';
 import {
   DndContext,
   closestCenter,
@@ -81,6 +83,36 @@ interface EditorState {
   logoHeight: number;  // Height in px
   logoOpacity: number;  // 0-100%
   showLogo: boolean;
+  // NEW: Watermark support
+  watermarkEnabled: boolean;
+  watermarkUrl?: string;
+  watermarkOpacity: number;  // 5-50%
+  watermarkSize: number;  // 100-600px
+  watermarkRotation: number;  // -45 to 45 degrees
+  // NEW: QR Code positioning
+  qrCodeEnabled: boolean;
+  qrCodePosition: 'payment-right' | 'payment-below' | 'top-right' | 'bottom-right';
+  qrCodeSize: number;  // 80-200px
+  // NEW: Warning Box (Reverse Charge)
+  warningBoxEnabled: boolean;
+  warningBoxText: string;
+  warningBoxBackgroundColor: string;
+  warningBoxTextColor: string;
+  warningBoxBorderColor: string;
+  warningBoxIcon: string;
+  // NEW: Social Media Icons
+  socialMediaEnabled: boolean;
+  socialMediaPosition: 'header' | 'footer';
+  socialMediaIconColor: string;
+  socialMediaIconSize: number;
+  socialMediaLinks: {
+    facebook?: string;
+    instagram?: string;
+    linkedin?: string;
+    twitter?: string;
+    youtube?: string;
+    tiktok?: string;
+  };
   pageSize: 'A4' | 'Letter';
   orientation: 'portrait' | 'landscape';
 }
@@ -101,6 +133,63 @@ const DEFAULT_BLOCKS: InvoiceBlock[] = [
   { id: 'notes', type: 'notes', label: 'Notatki', visible: true, order: 7 },
   { id: 'footer', type: 'footer', label: 'Stopka', visible: true, order: 8 },
 ];
+
+// SAMPLE DATA FOR LIVE PREVIEW
+const SAMPLE_INVOICE: Partial<Invoice> = {
+  invoice_number: 'INV-2025-001',
+  issue_date: '2025-11-12',
+  due_date: '2025-12-12',
+  total_net: 1500.00,
+  total_vat: 315.00,
+  total_gross: 1815.00,
+  lines: [
+    { 
+      id: '1',
+      invoice_id: 'preview', 
+      description: 'Web Development Services', 
+      quantity: 40, 
+      unit_price: 50.00, 
+      vat_rate: 21, 
+      line_net: 2000.00, 
+      line_vat: 420.00, 
+      line_gross: 2420.00,
+    },
+    { 
+      id: '2',
+      invoice_id: 'preview', 
+      description: 'Design Consultation', 
+      quantity: 10, 
+      unit_price: 75.00, 
+      vat_rate: 21, 
+      line_net: 750.00, 
+      line_vat: 157.50, 
+      line_gross: 907.50,
+    },
+  ],
+  payment_qr_payload: 'BCD\n002\n1\nSCT\nMESSU BOUW\nNL91ABNA0417164300\nEUR1815.00\n\nINV-2025-001',
+};
+
+const SAMPLE_CLIENT: Partial<Client> = {
+  id: '1',
+  name: 'Example Client B.V.',
+  email: 'client@example.com',
+  phone: '+31 20 123 4567',
+  address: 'Amsterdam 1012 AB, Netherlands',
+  vat_number: 'NL123456789B01',
+  kvk_number: '12345678',
+};
+
+const SAMPLE_COMPANY: Partial<Company> = {
+  id: '1',
+  name: 'MESSU BOUW',
+  email: 'info@messubouw.nl',
+  phone: '+31 6 12345678',
+  address: 'Rotterdam 3011 AB, Netherlands',
+  kvk: '87654321',
+  vat_number: 'NL987654321B01',
+  iban: 'NL91ABNA0417164300',
+  bank_name: 'ABN AMRO',
+};
 
 // Sortable Block Item Component
 interface SortableBlockItemProps {
@@ -294,6 +383,29 @@ export default function InvoiceTemplateEditor({ existingTemplate, onBack }: Invo
     logoHeight: existingTemplate?.logo?.size?.height || 60,
     logoOpacity: 100,
     showLogo: existingTemplate?.logo?.showInHeader ?? true,
+    // NEW: Watermark support
+    watermarkEnabled: false,
+    watermarkUrl: '',
+    watermarkOpacity: 10,  // 10%
+    watermarkSize: 400,    // 400px
+    watermarkRotation: -45, // -45 degrees
+    // NEW: QR Code positioning
+    qrCodeEnabled: true,
+    qrCodePosition: 'payment-right',
+    qrCodeSize: 120,  // 120px
+    // NEW: Warning Box
+    warningBoxEnabled: false,
+    warningBoxText: '⚠️ Reverse Charge - VAT należy rozliczyć w kraju nabywcy',
+    warningBoxBackgroundColor: '#fef3c7',  // yellow-100
+    warningBoxTextColor: '#92400e',  // yellow-900
+    warningBoxBorderColor: '#f59e0b',  // yellow-500
+    warningBoxIcon: '⚠️',
+    // NEW: Social Media
+    socialMediaEnabled: false,
+    socialMediaPosition: 'footer',
+    socialMediaIconColor: '#0ea5e9',  // sky-500
+    socialMediaIconSize: 24,
+    socialMediaLinks: {},
     pageSize: existingTemplate?.pageSize || 'A4',
     orientation: existingTemplate?.orientation || 'portrait',
   };
@@ -331,6 +443,25 @@ export default function InvoiceTemplateEditor({ existingTemplate, onBack }: Invo
     logoHeight,
     logoOpacity,
     showLogo,
+    watermarkEnabled,
+    watermarkUrl,
+    watermarkOpacity,
+    watermarkSize,
+    watermarkRotation,
+    qrCodeEnabled,
+    qrCodePosition,
+    qrCodeSize,
+    warningBoxEnabled,
+    warningBoxText,
+    warningBoxBackgroundColor,
+    warningBoxTextColor,
+    warningBoxBorderColor,
+    warningBoxIcon,
+    socialMediaEnabled,
+    socialMediaPosition,
+    socialMediaIconColor,
+    socialMediaIconSize,
+    socialMediaLinks,
     pageSize,
     orientation,
   } = currentState;
@@ -777,13 +908,35 @@ export default function InvoiceTemplateEditor({ existingTemplate, onBack }: Invo
           <div className="flex-1 flex justify-center">
             <div className="sticky top-6 h-fit">
               <div className="bg-white rounded-3xl shadow-2xl p-8 transform hover:scale-[1.01] transition-transform duration-300">
-                <div className="w-[595px] h-[842px] bg-white shadow-inner overflow-hidden relative border-2 border-gray-200 rounded-xl">
+                <div className="overflow-hidden relative border-2 border-gray-200 rounded-xl">
                   {/* Live Invoice Preview */}
-                  <div className="text-center py-32">
-                    <h2 className="text-3xl font-bold text-gray-300 mb-4">Podgląd faktury</h2>
-                    <p className="text-gray-400 text-lg">Tutaj pojawi się live preview faktury</p>
-                    <p className="text-sm text-gray-300 mt-3">Format A4: 595×842px</p>
-                  </div>
+                  <InvoiceTemplatePreview
+                    invoice={SAMPLE_INVOICE}
+                    client={SAMPLE_CLIENT as Client}
+                    company={{
+                      ...SAMPLE_COMPANY,
+                      logo_url: logoUrl || undefined,
+                    } as Company}
+                    template={{
+                      id: 'preview',
+                      name: templateName,
+                      description: 'Live preview',
+                      style: 'modern',
+                      config: {
+                        primaryColor: primaryColorStart,
+                        accentColor: accentColorStart,
+                        fontFamily: fontFamily.body,
+                        headerStyle: 'spacious' as const,
+                        tableStyle: 'lined' as const,
+                        footerStyle: 'compact' as const,
+                        showLogo: showLogo,
+                        showQRCode: true,
+                        showBankDetails: true,
+                        showWeekNumber: true,
+                      },
+                    }}
+                    scale={0.6}
+                  />
                 </div>
               </div>
             </div>
@@ -893,9 +1046,373 @@ export default function InvoiceTemplateEditor({ existingTemplate, onBack }: Invo
                     </div>
                   </div>
 
+                  {/* Watermark Section */}
+                  <div className="pb-6 border-b border-gray-200">
+                    <div className="flex items-center justify-between mb-4">
+                      <h3 className="text-lg font-bold text-gray-900">💧 Watermark</h3>
+                      <label className="relative inline-flex items-center cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={watermarkEnabled}
+                          onChange={(e) => updateState({ watermarkEnabled: e.target.checked }, watermarkEnabled ? 'Watermark wyłączony' : 'Watermark włączony')}
+                          className="sr-only peer"
+                        />
+                        <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-sky-300 rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-sky-600"></div>
+                      </label>
+                    </div>
+
+                    {watermarkEnabled && (
+                      <div className="space-y-4">
+                        <div>
+                          <label className="block text-sm font-bold text-gray-700 mb-2">Logo URL</label>
+                          <input
+                            type="text"
+                            value={watermarkUrl || ''}
+                            onChange={(e) => updateState({ watermarkUrl: e.target.value }, 'Zmieniono watermark URL')}
+                            placeholder="https://example.com/watermark.png"
+                            className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl text-sm focus:border-sky-500 focus:ring-2 focus:ring-sky-200 transition-all"
+                          />
+                          <p className="text-xs text-gray-500 mt-1">Lub użyj tego samego co logo główne</p>
+                        </div>
+
+                        <div>
+                          <label className="block text-sm font-bold text-gray-700 mb-2">
+                            Przezroczystość: {watermarkOpacity}%
+                          </label>
+                          <input
+                            type="range"
+                            value={watermarkOpacity}
+                            onChange={(e) => updateState({ watermarkOpacity: parseInt(e.target.value) }, `Przezroczystość: ${e.target.value}%`)}
+                            min="5"
+                            max="50"
+                            className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-sky-600"
+                          />
+                          <div className="flex justify-between text-xs text-gray-500 mt-1">
+                            <span>5%</span>
+                            <span>50%</span>
+                          </div>
+                        </div>
+
+                        <div>
+                          <label className="block text-sm font-bold text-gray-700 mb-2">
+                            Rozmiar: {watermarkSize}px
+                          </label>
+                          <input
+                            type="range"
+                            value={watermarkSize}
+                            onChange={(e) => updateState({ watermarkSize: parseInt(e.target.value) }, `Rozmiar: ${e.target.value}px`)}
+                            min="100"
+                            max="600"
+                            step="50"
+                            className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-sky-600"
+                          />
+                          <div className="flex justify-between text-xs text-gray-500 mt-1">
+                            <span>100px</span>
+                            <span>600px</span>
+                          </div>
+                        </div>
+
+                        <div>
+                          <label className="block text-sm font-bold text-gray-700 mb-2">
+                            Rotacja: {watermarkRotation}°
+                          </label>
+                          <input
+                            type="range"
+                            value={watermarkRotation}
+                            onChange={(e) => updateState({ watermarkRotation: parseInt(e.target.value) }, `Rotacja: ${e.target.value}°`)}
+                            min="-45"
+                            max="45"
+                            className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-sky-600"
+                          />
+                          <div className="flex justify-between text-xs text-gray-500 mt-1">
+                            <span>-45°</span>
+                            <span>0°</span>
+                            <span>45°</span>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* QR Code Section */}
+                  <div className="pb-6 border-b border-gray-200">
+                    <div className="flex items-center justify-between mb-4">
+                      <h3 className="text-lg font-bold text-gray-900">📱 QR Code</h3>
+                      <label className="relative inline-flex items-center cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={qrCodeEnabled}
+                          onChange={(e) => updateState({ qrCodeEnabled: e.target.checked }, qrCodeEnabled ? 'QR Code wyłączony' : 'QR Code włączony')}
+                          className="sr-only peer"
+                        />
+                        <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-sky-300 rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-sky-600"></div>
+                      </label>
+                    </div>
+
+                    {qrCodeEnabled && (
+                      <div className="space-y-4">
+                        <div>
+                          <label className="block text-sm font-bold text-gray-700 mb-2">Pozycja</label>
+                          <select
+                            value={qrCodePosition}
+                            onChange={(e) => updateState({ qrCodePosition: e.target.value as typeof qrCodePosition }, `Pozycja QR: ${e.target.value}`)}
+                            className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl text-sm font-semibold focus:border-sky-500 focus:ring-2 focus:ring-sky-200 transition-all"
+                          >
+                            <option value="payment-right">💳 Przy płatności (prawo)</option>
+                            <option value="payment-below">💳 Pod płatnością</option>
+                            <option value="top-right">⬆️ Góra (prawo)</option>
+                            <option value="bottom-right">⬇️ Dół (prawo)</option>
+                          </select>
+                        </div>
+
+                        <div>
+                          <label className="block text-sm font-bold text-gray-700 mb-2">
+                            Rozmiar: {qrCodeSize}px
+                          </label>
+                          <input
+                            type="range"
+                            value={qrCodeSize}
+                            onChange={(e) => updateState({ qrCodeSize: parseInt(e.target.value) }, `Rozmiar QR: ${e.target.value}px`)}
+                            min="80"
+                            max="200"
+                            step="20"
+                            className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-sky-600"
+                          />
+                          <div className="flex justify-between text-xs text-gray-500 mt-1">
+                            <span>80px</span>
+                            <span>200px</span>
+                          </div>
+                        </div>
+
+                        <div className="bg-sky-50 border border-sky-200 rounded-lg p-3">
+                          <p className="text-xs text-sky-700">
+                            ℹ️ QR Code generuje się automatycznie z danych płatności (IBAN, kwota, numer faktury)
+                          </p>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Warning Box (Reverse Charge) */}
+                  <div>
+                    <div className="flex items-center justify-between mb-4">
+                      <h3 className="text-lg font-bold text-gray-900">⚠️ Ostrzeżenie VAT</h3>
+                      <button
+                        onClick={() => updateState({ warningBoxEnabled: !warningBoxEnabled }, 'Toggled warning box')}
+                        className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                          warningBoxEnabled ? 'bg-sky-500' : 'bg-gray-300'
+                        }`}
+                        title="Toggle warning box"
+                      >
+                        <span
+                          className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                            warningBoxEnabled ? 'translate-x-6' : 'translate-x-1'
+                          }`}
+                        />
+                      </button>
+                    </div>
+
+                    {warningBoxEnabled && (
+                      <div className="space-y-4">
+                        <div>
+                          <label className="block text-sm font-bold text-gray-700 mb-2">Tekst ostrzeżenia</label>
+                          <textarea
+                            value={warningBoxText}
+                            onChange={(e) => updateState({ warningBoxText: e.target.value }, 'Updated warning text')}
+                            placeholder="⚠️ Reverse Charge - VAT należy rozliczyć w kraju nabywcy"
+                            rows={2}
+                            className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl text-sm font-semibold focus:border-sky-500 focus:ring-2 focus:ring-sky-200 transition-all"
+                            title="Tekst ostrzeżenia"
+                          />
+                        </div>
+
+                        <div>
+                          <label className="block text-sm font-bold text-gray-700 mb-2">Emoji/Ikona</label>
+                          <input
+                            type="text"
+                            value={warningBoxIcon}
+                            onChange={(e) => updateState({ warningBoxIcon: e.target.value }, 'Updated warning icon')}
+                            placeholder="⚠️"
+                            maxLength={4}
+                            className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl text-2xl text-center focus:border-sky-500 focus:ring-2 focus:ring-sky-200 transition-all"
+                            title="Emoji lub ikona"
+                          />
+                        </div>
+
+                        <div className="grid grid-cols-3 gap-3">
+                          <div>
+                            <label className="block text-sm font-bold text-gray-700 mb-2">Kolor tła</label>
+                            <input
+                              type="color"
+                              value={warningBoxBackgroundColor}
+                              onChange={(e) => updateState({ warningBoxBackgroundColor: e.target.value }, 'Updated warning background')}
+                              className="w-full h-12 border-2 border-gray-300 rounded-xl cursor-pointer"
+                              title="Kolor tła"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-sm font-bold text-gray-700 mb-2">Kolor tekstu</label>
+                            <input
+                              type="color"
+                              value={warningBoxTextColor}
+                              onChange={(e) => updateState({ warningBoxTextColor: e.target.value }, 'Updated warning text color')}
+                              className="w-full h-12 border-2 border-gray-300 rounded-xl cursor-pointer"
+                              title="Kolor tekstu"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-sm font-bold text-gray-700 mb-2">Kolor ramki</label>
+                            <input
+                              type="color"
+                              value={warningBoxBorderColor}
+                              onChange={(e) => updateState({ warningBoxBorderColor: e.target.value }, 'Updated warning border')}
+                              className="w-full h-12 border-2 border-gray-300 rounded-xl cursor-pointer"
+                              title="Kolor ramki"
+                            />
+                          </div>
+                        </div>
+
+                        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
+                          <p className="text-xs text-yellow-700">
+                            ℹ️ Ostrzeżenie pojawi się na górze faktury dla transakcji Reverse Charge (odwrotne obciążenie)
+                          </p>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Social Media Icons */}
+                  <div>
+                    <div className="flex items-center justify-between mb-4">
+                      <h3 className="text-lg font-bold text-gray-900">📱 Social Media</h3>
+                      <button
+                        onClick={() => updateState({ socialMediaEnabled: !socialMediaEnabled }, 'Toggled social media')}
+                        className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                          socialMediaEnabled ? 'bg-sky-500' : 'bg-gray-300'
+                        }`}
+                        title="Toggle social media"
+                      >
+                        <span
+                          className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                            socialMediaEnabled ? 'translate-x-6' : 'translate-x-1'
+                          }`}
+                        />
+                      </button>
+                    </div>
+
+                    {socialMediaEnabled && (
+                      <div className="space-y-4">
+                        <div className="grid grid-cols-2 gap-3">
+                          <div>
+                            <label className="block text-sm font-bold text-gray-700 mb-2">Pozycja</label>
+                            <select
+                              value={socialMediaPosition}
+                              onChange={(e) => updateState({ socialMediaPosition: e.target.value as 'header' | 'footer' }, 'Changed social position')}
+                              className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl text-sm font-semibold focus:border-sky-500 focus:ring-2 focus:ring-sky-200 transition-all"
+                              title="Pozycja ikon"
+                            >
+                              <option value="header">Nagłówek</option>
+                              <option value="footer">Stopka</option>
+                            </select>
+                          </div>
+                          <div>
+                            <label className="block text-sm font-bold text-gray-700 mb-2">Rozmiar ikon</label>
+                            <div className="space-y-2">
+                              <input
+                                type="range"
+                                min="16"
+                                max="32"
+                                value={socialMediaIconSize}
+                                onChange={(e) => updateState({ socialMediaIconSize: parseInt(e.target.value) }, 'Changed icon size')}
+                                className="w-full"
+                                title="Rozmiar ikon"
+                              />
+                              <div className="text-xs text-center font-bold text-gray-600">{socialMediaIconSize}px</div>
+                            </div>
+                          </div>
+                        </div>
+
+                        <div>
+                          <label className="block text-sm font-bold text-gray-700 mb-2">Kolor ikon</label>
+                          <input
+                            type="color"
+                            value={socialMediaIconColor}
+                            onChange={(e) => updateState({ socialMediaIconColor: e.target.value }, 'Updated icon color')}
+                            className="w-full h-12 border-2 border-gray-300 rounded-xl cursor-pointer"
+                            title="Kolor ikon"
+                          />
+                        </div>
+
+                        <div className="space-y-3">
+                          <p className="text-sm font-bold text-gray-700">Linki do profili:</p>
+                          
+                          <input
+                            type="url"
+                            value={socialMediaLinks.facebook || ''}
+                            onChange={(e) => updateState({ socialMediaLinks: { ...socialMediaLinks, facebook: e.target.value } }, 'Updated Facebook')}
+                            placeholder="🔵 Facebook - https://facebook.com/..."
+                            className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl text-sm focus:border-sky-500 focus:ring-2 focus:ring-sky-200 transition-all"
+                            title="Link do profilu Facebook"
+                          />
+                          
+                          <input
+                            type="url"
+                            value={socialMediaLinks.instagram || ''}
+                            onChange={(e) => updateState({ socialMediaLinks: { ...socialMediaLinks, instagram: e.target.value } }, 'Updated Instagram')}
+                            placeholder="📷 Instagram - https://instagram.com/..."
+                            className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl text-sm focus:border-sky-500 focus:ring-2 focus:ring-sky-200 transition-all"
+                            title="Link do profilu Instagram"
+                          />
+                          
+                          <input
+                            type="url"
+                            value={socialMediaLinks.linkedin || ''}
+                            onChange={(e) => updateState({ socialMediaLinks: { ...socialMediaLinks, linkedin: e.target.value } }, 'Updated LinkedIn')}
+                            placeholder="💼 LinkedIn - https://linkedin.com/..."
+                            className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl text-sm focus:border-sky-500 focus:ring-2 focus:ring-sky-200 transition-all"
+                            title="Link do profilu LinkedIn"
+                          />
+                          
+                          <input
+                            type="url"
+                            value={socialMediaLinks.twitter || ''}
+                            onChange={(e) => updateState({ socialMediaLinks: { ...socialMediaLinks, twitter: e.target.value } }, 'Updated Twitter')}
+                            placeholder="🐦 Twitter/X - https://twitter.com/..."
+                            className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl text-sm focus:border-sky-500 focus:ring-2 focus:ring-sky-200 transition-all"
+                            title="Link do profilu Twitter/X"
+                          />
+                          
+                          <input
+                            type="url"
+                            value={socialMediaLinks.youtube || ''}
+                            onChange={(e) => updateState({ socialMediaLinks: { ...socialMediaLinks, youtube: e.target.value } }, 'Updated YouTube')}
+                            placeholder="📺 YouTube - https://youtube.com/..."
+                            className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl text-sm focus:border-sky-500 focus:ring-2 focus:ring-sky-200 transition-all"
+                            title="Link do kanału YouTube"
+                          />
+                          
+                          <input
+                            type="url"
+                            value={socialMediaLinks.tiktok || ''}
+                            onChange={(e) => updateState({ socialMediaLinks: { ...socialMediaLinks, tiktok: e.target.value } }, 'Updated TikTok')}
+                            placeholder="🎵 TikTok - https://tiktok.com/@..."
+                            className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl text-sm focus:border-sky-500 focus:ring-2 focus:ring-sky-200 transition-all"
+                            title="Link do profilu TikTok"
+                          />
+                        </div>
+
+                        <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+                          <p className="text-xs text-blue-700">
+                            ℹ️ Ikony social media pojawią się w wybranej pozycji (nagłówek/stopka) z linkami do profili
+                          </p>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
                   {/* Page Settings */}
                   <div>
-                    <h3 className="text-lg font-bold text-gray-900 mb-4">� Ustawienia strony</h3>
+                    <h3 className="text-lg font-bold text-gray-900 mb-4">Ustawienia strony</h3>
                     <div className="grid grid-cols-2 gap-3">
                       <div>
                         <label className="block text-sm font-bold text-gray-700 mb-2">Rozmiar</label>

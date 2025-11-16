@@ -12,7 +12,10 @@
  */
 
 import React, { useState, useRef } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useAudio } from '@/contexts/AudioContext';
+import { useTimesheets } from '@/hooks/useElectronDB';
+import { Timesheet, DayHours } from '@/types';
 import { 
   Printer, 
   Download, 
@@ -24,54 +27,11 @@ import {
   User,
   Clock,
   CurrencyEur,
-  FilePdf
+  FilePdf,
+  ShareNetwork
 } from '@phosphor-icons/react';
 import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
-
-// ============================================
-// TYPY
-// ============================================
-
-interface DayHours {
-  date: string;          // YYYY-MM-DD
-  dayName: string;       // Poniedziałek, Wtorek...
-  startTime: string;     // HH:MM
-  endTime: string;       // HH:MM
-  breakMinutes: number;  // Przerwa w minutach
-  workedHours: number;   // Automatycznie wyliczone
-  notes: string;         // Uwagi do dnia
-}
-
-interface Timesheet {
-  id: string;
-  weekStartDate: string;    // Poniedziałek YYYY-MM-DD
-  weekEndDate: string;      // Niedziela YYYY-MM-DD
-  
-  // Pracownik
-  employeeName: string;
-  employeeAddress: string;
-  employeePhone: string;
-  
-  // Projekt / Budowa
-  projectName: string;
-  projectAddress: string;
-  projectClient: string;
-  
-  // Stawka
-  hourlyRate: number;       // € za godzinę
-  
-  // Dni tygodnia
-  days: DayHours[];
-  
-  // Wyliczenia
-  totalHours: number;
-  totalAmount: number;
-  
-  // Metadata
-  createdAt: string;
-  updatedAt: string;
-}
 
 // ============================================
 // POMOCNICZE FUNKCJE
@@ -131,14 +91,12 @@ function formatDatePL(dateStr: string): string {
 // ============================================
 
 export function Timesheets() {
+  const { t, i18n } = useTranslation();
   const { isMuted } = useAudio();
-  const [timesheets, setTimesheets] = useState<Timesheet[]>(() => {
-    // Wczytaj zapisane karty pracy z localStorage przy starcie
-    const saved = localStorage.getItem('timesheets');
-    return saved ? JSON.parse(saved) : [];
-  });
+  const { timesheets, loading, createTimesheet, updateTimesheet, deleteTimesheet } = useTimesheets();
   const [currentSheet, setCurrentSheet] = useState<Timesheet | null>(null);
   const [showPreview, setShowPreview] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
   
   const printRef = useRef<HTMLDivElement>(null);
   
@@ -273,24 +231,55 @@ export function Timesheets() {
       const imgData = canvas.toDataURL('image/png');
       pdf.addImage(imgData, 'PNG', 0, 0, imgWidth, imgHeight);
       
-      // Zapisz PDF
       const filename = `Karta_Pracy_${currentSheet.employeeName || 'MESSU_BOUW'}_${formatDatePL(currentSheet.weekStartDate)}.pdf`;
-      pdf.save(filename);
       
       // Usuń komunikat ładowania
       document.body.removeChild(loadingToast);
+
+      // Spróbuj użyć Web Share API (działa na mobile)
+      if (navigator.share && navigator.canShare) {
+        try {
+          const pdfBlob = pdf.output('blob');
+          const file = new File([pdfBlob], filename, { type: 'application/pdf' });
+          
+          if (navigator.canShare({ files: [file] })) {
+            await navigator.share({
+              files: [file],
+              title: 'Karta Pracy - MESSU BOUW',
+              text: `Karta pracy: ${currentSheet.employeeName}`
+            });
+            showSuccessToast('✅ PDF udostępniony!');
+            return;
+          }
+        } catch (err: any) {
+          if (err.name !== 'AbortError') {
+            console.log('Web Share API error:', err);
+          }
+          // Jeśli użytkownik anulował lub błąd, kontynuuj do pobierania
+        }
+      }
       
-      // Pokaż sukces
-      const successToast = document.createElement('div');
-      successToast.textContent = '✅ PDF pobrany!';
-      successToast.style.cssText = 'position:fixed;top:20px;left:50%;transform:translateX(-50%);background:#10b981;color:white;padding:12px 24px;border-radius:8px;z-index:9999;font-weight:600;';
-      document.body.appendChild(successToast);
-      setTimeout(() => document.body.removeChild(successToast), 3000);
+      // Fallback: standardowe pobieranie (działa wszędzie)
+      pdf.save(filename);
+      showSuccessToast('✅ PDF pobrany!');
       
     } catch (error) {
       console.error('Błąd generowania PDF:', error);
       alert('❌ Nie udało się wygenerować PDF. Spróbuj ponownie.');
     }
+  };
+
+  // Helper do pokazywania toastów sukcesu
+  const showSuccessToast = (message: string) => {
+    const successToast = document.createElement('div');
+    successToast.textContent = message;
+    successToast.style.cssText = 'position:fixed;top:20px;left:50%;transform:translateX(-50%);background:#10b981;color:white;padding:12px 24px;border-radius:8px;z-index:9999;font-weight:600;';
+    document.body.appendChild(successToast);
+    setTimeout(() => {
+      if (document.body.contains(successToast)) {
+        document.body.removeChild(successToast);
+      }
+    }, 3000);
   };
 
   // Nowa karta pracy
@@ -355,28 +344,28 @@ export function Timesheets() {
   };
 
   // Zapisz kartę pracy
-  const saveTimesheet = () => {
+  const saveTimesheet = async () => {
     if (!currentSheet) return;
     
-    const existingIndex = timesheets.findIndex(t => t.id === currentSheet.id);
-    let updatedTimesheets: Timesheet[];
-    
-    if (existingIndex >= 0) {
-      // Aktualizuj istniejącą kartę
-      updatedTimesheets = [...timesheets];
-      updatedTimesheets[existingIndex] = currentSheet;
-    } else {
-      // Dodaj nową kartę
-      updatedTimesheets = [...timesheets, currentSheet];
+    setIsSaving(true);
+    try {
+      const existingIndex = timesheets.findIndex(t => t.id === currentSheet.id);
+      
+      if (existingIndex >= 0) {
+        // Aktualizuj istniejącą kartę
+        await updateTimesheet(currentSheet.id, currentSheet);
+        alert('✅ Karta pracy zaktualizowana!');
+      } else {
+        // Dodaj nową kartę
+        await createTimesheet(currentSheet);
+        alert('✅ Karta pracy zapisana!');
+      }
+    } catch (error) {
+      console.error('Error saving timesheet:', error);
+      alert('❌ Błąd podczas zapisywania karty pracy');
+    } finally {
+      setIsSaving(false);
     }
-    
-    // Zaktualizuj state
-    setTimesheets(updatedTimesheets);
-    
-    // Zapisz do localStorage
-    localStorage.setItem('timesheets', JSON.stringify(updatedTimesheets));
-    
-    alert('✅ Karta pracy zapisana!');
   };
 
   // ============================================
@@ -491,18 +480,21 @@ export function Timesheets() {
             <button
               onClick={() => setCurrentSheet(null)}
               className="px-4 py-2 bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition-all"
+              disabled={isSaving}
             >
               Anuluj
             </button>
             <button
               onClick={saveTimesheet}
-              className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-all shadow-lg"
+              className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-all shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
+              disabled={isSaving}
             >
-              Zapisz
+              {isSaving ? 'Zapisywanie...' : 'Zapisz'}
             </button>
             <button
               onClick={() => setShowPreview(true)}
               className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-all shadow-lg"
+              disabled={isSaving}
             >
               <Printer size={18} className="inline mr-2" />
               Podgląd Wydruku
@@ -765,7 +757,7 @@ export function Timesheets() {
             
             {/* Wersja do wydruku */}
             <div ref={printRef} className="p-8 bg-white">
-              <PrintableTimesheet timesheet={currentSheet} />
+              <PrintableTimesheet timesheet={currentSheet} t={t} />
             </div>
           </div>
         </div>
@@ -778,7 +770,7 @@ export function Timesheets() {
 // KOMPONENT DRUKOWALNY
 // ============================================
 
-function PrintableTimesheet({ timesheet }: { timesheet: Timesheet }) {
+function PrintableTimesheet({ timesheet, t }: { timesheet: Timesheet; t: any }) {
   return (
     <div className="max-w-4xl mx-auto font-sans">
       {/* Header z logo */}
@@ -789,7 +781,7 @@ function PrintableTimesheet({ timesheet }: { timesheet: Timesheet }) {
             alt="MESSU BOUW" 
             className="h-16 w-auto mb-2"
           />
-          <h1 className="text-3xl font-bold text-slate-900">KARTA CZASU PRACY</h1>
+          <h1 className="text-3xl font-bold text-slate-900">{t('timesheets.timecard')}</h1>
           <p className="text-slate-600 mt-1">
             Tydzień: {formatDatePL(timesheet.weekStartDate)} - {formatDatePL(timesheet.weekEndDate)}
           </p>
@@ -803,7 +795,7 @@ function PrintableTimesheet({ timesheet }: { timesheet: Timesheet }) {
       {/* Dane pracownika i projektu */}
       <div className="grid grid-cols-2 gap-8 mb-8">
         <div>
-          <h2 className="text-sm font-bold text-slate-500 uppercase mb-3">Pracownik</h2>
+          <h2 className="text-sm font-bold text-slate-500 uppercase mb-3">{t('timesheets.employee')}</h2>
           <div className="space-y-2 text-slate-900">
             <p className="font-bold text-lg">{timesheet.employeeName}</p>
             <p className="text-sm">{timesheet.employeeAddress}</p>
@@ -826,13 +818,13 @@ function PrintableTimesheet({ timesheet }: { timesheet: Timesheet }) {
         <thead>
           <tr className="bg-sky-100 border-b-2 border-sky-500">
             <th className="text-left py-3 px-3 text-xs font-bold text-slate-700 uppercase">Dzień</th>
-            <th className="text-left py-3 px-3 text-xs font-bold text-slate-700 uppercase">Data</th>
-            <th className="text-center py-3 px-3 text-xs font-bold text-slate-700 uppercase">Start</th>
-            <th className="text-center py-3 px-3 text-xs font-bold text-slate-700 uppercase">Koniec</th>
-            <th className="text-center py-3 px-3 text-xs font-bold text-slate-700 uppercase">Przerwa</th>
-            <th className="text-right py-3 px-3 text-xs font-bold text-slate-700 uppercase">Godziny</th>
+            <th className="text-left py-3 px-3 text-xs font-bold text-slate-700 uppercase">{t('timesheets.dateLabel')}</th>
+            <th className="text-center py-3 px-3 text-xs font-bold text-slate-700 uppercase">{t('timesheets.startTime')}</th>
+            <th className="text-center py-3 px-3 text-xs font-bold text-slate-700 uppercase">{t('timesheets.endTime')}</th>
+            <th className="text-center py-3 px-3 text-xs font-bold text-slate-700 uppercase">{t('timesheets.break')}</th>
+            <th className="text-right py-3 px-3 text-xs font-bold text-slate-700 uppercase">{t('timesheets.hoursWorked')}</th>
             <th className="text-right py-3 px-3 text-xs font-bold text-slate-700 uppercase">Kwota (€)</th>
-            <th className="text-left py-3 px-3 text-xs font-bold text-slate-700 uppercase">Uwagi</th>
+            <th className="text-left py-3 px-3 text-xs font-bold text-slate-700 uppercase">{t('timesheets.notes')}</th>
           </tr>
         </thead>
         <tbody>
@@ -873,7 +865,7 @@ function PrintableTimesheet({ timesheet }: { timesheet: Timesheet }) {
             <p className="text-3xl font-bold text-sky-600 font-mono">{timesheet.totalHours.toFixed(2)}h</p>
           </div>
           <div>
-            <p className="text-sm text-slate-600 uppercase mb-1">Stawka godzinowa</p>
+            <p className="text-sm text-slate-600 uppercase mb-1">{t('timesheets.hourlyRate')}</p>
             <p className="text-3xl font-bold text-slate-900 font-mono">€{timesheet.hourlyRate.toFixed(2)}</p>
           </div>
           <div>

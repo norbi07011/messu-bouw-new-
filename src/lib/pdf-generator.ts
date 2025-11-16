@@ -105,8 +105,8 @@ export async function generateInvoicePDF(
     const blob = new Blob([fullHTML], { type: 'text/html' });
     const url = URL.createObjectURL(blob);
     
-    // Otwórz w nowym oknie z instrukcją druku
-    const printWindow = window.open(url, '_blank', 'width=1024,height=768');
+    // Otwórz w nowym oknie
+    const printWindow = window.open(url, '_blank');
     
     if (printWindow) {
       printWindow.onload = () => {
@@ -128,6 +128,99 @@ export async function generateInvoicePDF(
     setTimeout(() => URL.revokeObjectURL(url), 10000);
   } catch (error) {
     console.error('Error generating PDF:', error);
+    throw error;
+  }
+}
+
+// Funkcja do generowania PDF na telefonie używając html2canvas + jsPDF
+export async function generateMobilePDF(
+  invoice: Invoice,
+  company: Company,
+  client: Client,
+  lines: InvoiceLine[],
+  language: string,
+  templateId: string = 'classic'
+): Promise<void> {
+  try {
+    // Dynamiczny import bibliotek (lazy loading)
+    const [html2canvas, { jsPDF }] = await Promise.all([
+      import('html2canvas'),
+      import('jspdf')
+    ]);
+
+    const template = getTemplateById(templateId);
+    
+    // Wygeneruj QR kod
+    const qrDataUrl = await QRCode.toDataURL(invoice.payment_qr_payload, {
+      errorCorrectionLevel: 'M',
+      type: 'image/png',
+      width: 200,
+      margin: 2,
+    });
+
+    let logoDataUrl = '';
+    if (template.config.showLogo && company.logo_url) {
+      logoDataUrl = await imageUrlToBase64(company.logo_url);
+    }
+
+    const weekNumber = getISOWeekNumber(invoice.issue_date).toString();
+    const t = getTranslations(language);
+
+    const html = generateTemplateHTML(invoice, company, client, lines, template, qrDataUrl, weekNumber, t, language, logoDataUrl);
+    
+    // Utwórz tymczasowy kontener
+    const container = document.createElement('div');
+    container.style.position = 'absolute';
+    container.style.left = '-9999px';
+    container.style.top = '0';
+    container.style.width = '794px'; // A4 width w pixelach (przy 96 DPI)
+    container.style.padding = '40px';
+    container.style.backgroundColor = '#ffffff';
+    container.innerHTML = html;
+    document.body.appendChild(container);
+
+    try {
+      // Poczekaj na załadowanie obrazków
+      await new Promise(resolve => setTimeout(resolve, 500));
+
+      // Wygeneruj canvas z HTML
+      const canvas = await html2canvas.default(container, {
+        scale: 2, // Wyższa jakość
+        useCORS: true,
+        allowTaint: true,
+        backgroundColor: '#ffffff',
+        logging: false,
+      });
+
+      // Usuń tymczasowy kontener
+      document.body.removeChild(container);
+
+      // Utwórz PDF
+      const imgWidth = 210; // A4 width w mm
+      const imgHeight = (canvas.height * imgWidth) / canvas.width;
+      
+      const pdf = new jsPDF.default({
+        orientation: imgHeight > imgWidth ? 'portrait' : 'landscape',
+        unit: 'mm',
+        format: 'a4',
+      });
+
+      const imgData = canvas.toDataURL('image/png');
+      pdf.addImage(imgData, 'PNG', 0, 0, imgWidth, imgHeight);
+
+      // Zapisz PDF (automatycznie pobierze na telefonie)
+      pdf.save(`Faktura_${invoice.invoice_number}.pdf`);
+
+      console.log('✅ PDF wygenerowany pomyślnie na telefonie');
+    } catch (error) {
+      // Cleanup w razie błędu
+      if (document.body.contains(container)) {
+        document.body.removeChild(container);
+      }
+      throw error;
+    }
+  } catch (error) {
+    console.error('❌ Błąd generowania PDF na telefonie:', error);
     throw error;
   }
 }

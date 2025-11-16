@@ -310,7 +310,7 @@ Wersja: 1.0.0 (Build: ${new Date().toISOString().split('T')[0]})`;
                 </div>
                 <div>
                   <h3 className="text-2xl font-bold">💻 Pobierz na komputer</h3>
-                  <p className="text-sky-100">Aplikacja desktop Windows z instalatorem</p>
+                  <p className="text-sky-100">{t('dashboard.desktopApp')}</p>
                 </div>
               </div>
               <button
@@ -332,14 +332,14 @@ Wersja: 1.0.0 (Build: ${new Date().toISOString().split('T')[0]})`;
                 </div>
                 <div>
                   <h3 className="text-2xl font-bold">📱 Pobierz na telefon</h3>
-                  <p className="text-blue-100">Skopiuj adres i otwórz w przeglądarce telefonu</p>
+                  <p className="text-blue-100">{t('dashboard.copyAddress')}</p>
                 </div>
               </div>
               <button
                 onClick={handleDownloadMobile}
                 className="w-full py-4 bg-white/25 backdrop-blur-md border-2 border-white/40 rounded-2xl hover:bg-white/35 hover:border-white/60 transition-all duration-500 font-bold text-lg shadow-2xl group-hover:shadow-[0_20px_60px_rgba(0,0,0,0.3)]"
               >
-                <span className="drop-shadow-lg">Skopiuj adres</span>
+                <span className="drop-shadow-lg">{t('dashboard.copyAddress')}</span>
               </button>
             </div>
           </div>

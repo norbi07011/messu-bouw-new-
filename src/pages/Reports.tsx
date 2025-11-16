@@ -458,10 +458,10 @@ export default function Reports() {
         </div>        {/* PRAWA STRONA: Tekst i przyciski */}
         <div className="flex flex-col justify-center px-4 md:px-6 lg:px-8">
           <h1 className="text-3xl md:text-4xl lg:text-5xl xl:text-6xl font-black text-black mb-3 md:mb-4 tracking-tight">
-            📊 Raporty
+            📊 {t('reports.title')}
           </h1>
           <p className="text-xl lg:text-2xl text-black mb-8 font-medium">
-            Kompleksowa analiza finansowa dla ZZP
+            {t('reports.subtitle')}
           </p>
           <div className="flex flex-wrap items-center gap-4">
             <Select value={selectedYear} onValueChange={setSelectedYear}>
@@ -501,12 +501,12 @@ export default function Reports() {
 
       <Tabs defaultValue="charts" className="space-y-6">
         <TabsList className="grid w-full grid-cols-6">
-          <TabsTrigger value="charts">📊 Wykresy</TabsTrigger>
-          <TabsTrigger value="overview">Overview</TabsTrigger>
-          <TabsTrigger value="revenue">Revenue Analysis</TabsTrigger>
-          <TabsTrigger value="tax">Dutch Tax Analysis</TabsTrigger>
-          <TabsTrigger value="vat">VAT Breakdown</TabsTrigger>
-          <TabsTrigger value="clients">Client Analytics</TabsTrigger>
+          <TabsTrigger value="charts">📊 {t('reports.tabCharts')}</TabsTrigger>
+          <TabsTrigger value="overview">{t('reports.tabOverview')}</TabsTrigger>
+          <TabsTrigger value="revenue">{t('reports.tabRevenue')}</TabsTrigger>
+          <TabsTrigger value="tax">{t('reports.tabTax')}</TabsTrigger>
+          <TabsTrigger value="vat">{t('reports.tabVat')}</TabsTrigger>
+          <TabsTrigger value="clients">{t('reports.tabClients')}</TabsTrigger>
         </TabsList>
 
         {/* ★★★ NOWA ZAKŁADKA - WYKRESY ETAP 5 ★★★ */}

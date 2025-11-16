@@ -29,6 +29,7 @@ interface InvoiceFormProps {
 }
 
 export default function InvoiceForm({ onNavigate, editInvoiceId }: InvoiceFormProps) {
+  console.log('🎯 InvoiceForm renderowany z editInvoiceId:', editInvoiceId);
   const { t, i18n } = useTranslation();
   const { clients } = useClients();
   const { products } = useProducts();
@@ -37,6 +38,9 @@ export default function InvoiceForm({ onNavigate, editInvoiceId }: InvoiceFormPr
   
   // Temporary counter state - this should ideally be part of the database
   const [counters, setCounters] = useState<InvoiceCounter[]>([]);
+  
+  // Flaga zapobiegająca wielokrotnemu ładowaniu
+  const [isLoaded, setIsLoaded] = useState(false);
   
   // Nowy stan dla numeracji
   const [numberingMode, setNumberingMode] = useState<'auto' | 'manual'>('auto');
@@ -75,9 +79,15 @@ export default function InvoiceForm({ onNavigate, editInvoiceId }: InvoiceFormPr
 
   const dueDate = useMemo(() => addDays(issueDate, paymentTermDays), [issueDate, paymentTermDays]);
 
+  // Reset flagi gdy zmienia się editInvoiceId
+  useEffect(() => {
+    setIsLoaded(false);
+  }, [editInvoiceId]);
+
   // Załaduj dane faktury do edycji
   useEffect(() => {
-    if (editInvoiceId && invoices) {
+    if (editInvoiceId && invoices && invoices.length > 0 && !isLoaded) {
+      console.log('🔍 Szukam faktury:', editInvoiceId, 'w', invoices.length, 'fakturach');
       const invoice = invoices.find(inv => inv.id === editInvoiceId);
       if (invoice) {
         console.log('📝 Ładowanie faktury do edycji:', invoice);
@@ -106,15 +116,19 @@ export default function InvoiceForm({ onNavigate, editInvoiceId }: InvoiceFormPr
           })));
         }
         
+        setIsLoaded(true);
+        
         toast.success(`Edycja faktury ${invoice.invoice_number}`, {
           description: 'Dane zostały załadowane'
         });
       } else {
+        console.error('❌ Nie znaleziono faktury o ID:', editInvoiceId);
+        console.log('Dostępne faktury:', invoices.map(inv => ({ id: inv.id, number: inv.invoice_number })));
         toast.error('Nie znaleziono faktury');
         onNavigate('invoices');
       }
     }
-  }, [editInvoiceId, invoices, onNavigate]);
+  }, [editInvoiceId, invoices, isLoaded, onNavigate]);
 
   const totals = useMemo(() => {
     const validLines = lines.filter(l => l.description && l.quantity && l.unit_price !== undefined && l.vat_rate !== undefined);
@@ -167,6 +181,16 @@ export default function InvoiceForm({ onNavigate, editInvoiceId }: InvoiceFormPr
   };
 
   const handleSaveInvoice = async () => {
+    console.log('💾 handleSaveInvoice wywołane');
+    console.log('📊 Tryb:', editInvoiceId ? 'EDYCJA' : 'NOWA');
+    console.log('📋 Dane:', {
+      editInvoiceId,
+      selectedClientId,
+      lines: lines.length,
+      numberingMode,
+      manualInvoiceNumber
+    });
+    
     if (!selectedClientId) {
       toast.error('Please select a client');
       return;
